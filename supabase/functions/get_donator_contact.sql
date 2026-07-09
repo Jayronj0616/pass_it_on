@@ -1,0 +1,3 @@
+-- Postgres function: returns donator email/phone only if
+-- caller (auth.uid()) is the receiver on an approved inquiry for that donator's item
+-- See SYSTEM.md §5

@@ -1,0 +1,2 @@
+-- profiles, items, inquiries tables + RLS policies
+-- See SYSTEM.md §4 for full schema and RLS notes
