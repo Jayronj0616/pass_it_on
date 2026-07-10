@@ -5,7 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { StatusTag } from "@/components/items/StatusTag";
 import { InquiryModal } from "@/components/inquiries/InquiryModal";
+<<<<<<< HEAD
 import { createClient } from "@/lib/supabase/client";
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
 
 type Item = {
   id: string;
@@ -18,6 +21,7 @@ type Item = {
   postedAt: string;
 };
 
+<<<<<<< HEAD
 export function ItemDetailClient({
   item,
   userId,
@@ -55,6 +59,15 @@ export function ItemDetailClient({
     return { ok: true as const };
   }
 
+=======
+export function ItemDetailClient({ item }: { item: Item }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  // Temporary dev toggle — real auth state comes from Supabase session once wired up.
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const canInquire = item.status === "available";
+
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-sm">
@@ -62,6 +75,16 @@ export function ItemDetailClient({
           <Link href="/" className="text-xl font-extrabold tracking-tight text-ink">
             PassItOn
           </Link>
+<<<<<<< HEAD
+=======
+          {/* Dev-only auth toggle, remove once real auth is wired up */}
+          <button
+            onClick={() => setIsLoggedIn((v) => !v)}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-gray-bg hover:text-ink"
+          >
+            Dev: {isLoggedIn ? "logged in" : "logged out"}
+          </button>
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
         </div>
       </header>
 
@@ -112,11 +135,15 @@ export function ItemDetailClient({
             </p>
 
             <div className="mt-auto pt-6">
+<<<<<<< HEAD
               {isAdmin ? (
                 <p className="rounded-lg border border-border bg-gray-bg px-4 py-3 text-center text-sm font-medium text-muted">
                   Viewing as admin — use a regular account to send inquiries.
                 </p>
               ) : canInquire ? (
+=======
+              {canInquire ? (
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
                 <button
                   onClick={() => setModalOpen(true)}
                   className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-ink/90 sm:w-auto"
@@ -140,7 +167,14 @@ export function ItemDetailClient({
         isOpen={modalOpen}
         isLoggedIn={isLoggedIn}
         onClose={() => setModalOpen(false)}
+<<<<<<< HEAD
         onSubmit={handleInquirySubmit}
+=======
+        onSubmit={(message) => {
+          // Placeholder — replace with a real insert into `inquiries` once Supabase is wired up.
+          console.log("inquiry submitted:", message);
+        }}
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
       />
     </div>
   );

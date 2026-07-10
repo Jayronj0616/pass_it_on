@@ -2,22 +2,31 @@
 
 import { useState } from "react";
 import Link from "next/link";
+<<<<<<< HEAD
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
+=======
+
+export default function SignupPage() {
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+<<<<<<< HEAD
   const [error, setError] = useState<string | null>(null);
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
 
   const canSubmit =
     displayName.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length >= 6;
 
+<<<<<<< HEAD
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
@@ -50,6 +59,16 @@ export default function SignupPage() {
 
     router.push("/");
     router.refresh();
+=======
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    // Placeholder — replace with:
+    // supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } })
+    // then insert/upsert into profiles (id, display_name, email)
+    setSubmitting(true);
+    console.log("signup submitted:", { displayName, email, password });
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
   }
 
   return (
@@ -64,12 +83,15 @@ export default function SignupPage() {
           Join to post items or send inquiries on things you need.
         </p>
 
+<<<<<<< HEAD
         {error && (
           <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
             {error}
           </p>
         )}
 
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
         <form onSubmit={handleSubmit} className="mt-5">
           <label
             htmlFor="signup-name"

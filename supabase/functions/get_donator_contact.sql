@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 -- get_donator_contact — SYSTEM.md §5
 -- Returns the donator's email (and phone, if shared) for a given inquiry,
 -- but only if the inquiry is approved and the caller is its receiver.
@@ -27,3 +28,8 @@ $$;
 
 revoke all on function get_donator_contact(uuid) from public;
 grant execute on function get_donator_contact(uuid) to authenticated;
+=======
+-- Postgres function: returns donator email/phone only if
+-- caller (auth.uid()) is the receiver on an approved inquiry for that donator's item
+-- See SYSTEM.md §5
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31

@@ -1,4 +1,5 @@
 import Link from "next/link";
+<<<<<<< HEAD
 import { createClient } from "@/lib/supabase/server";
 import { ItemCard, type ItemCardData } from "@/components/items/ItemCard";
 
@@ -25,6 +26,45 @@ export default async function HomePage() {
     status: item.status,
     inquiryCount: item.inquiry_count,
   }));
+=======
+import { ItemCard, type ItemCardData } from "@/components/items/ItemCard";
+
+// Placeholder data — replace with a Supabase query once the DB is wired up.
+// select id, title, description, photo_url, status, inquiry_count from items
+// where status != 'completed' order by created_at desc
+const MOCK_ITEMS: ItemCardData[] = [
+  {
+    id: "1",
+    title: "Oak bookshelf, 5 shelves",
+    description:
+      "Solid oak, a little scuffed on one side but sturdy. Moving out, needs to go this week.",
+    photoUrl: null,
+    status: "available",
+    inquiryCount: 3,
+  },
+  {
+    id: "2",
+    title: "Box of kids' picture books",
+    description:
+      "About 20 books, ages 3-7. Some water damage on a couple covers, pages all fine.",
+    photoUrl: null,
+    status: "reserved",
+    inquiryCount: 5,
+  },
+  {
+    id: "3",
+    title: "Standing desk frame",
+    description:
+      "Motor works, no tabletop included. You'd need to attach your own surface.",
+    photoUrl: null,
+    status: "available",
+    inquiryCount: 0,
+  },
+];
+
+export default function HomePage() {
+  const items = MOCK_ITEMS;
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -48,15 +88,26 @@ export default async function HomePage() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+<<<<<<< HEAD
         {items_.length === 0 ? (
+=======
+        {items.length === 0 ? (
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
           <EmptyState />
         ) : (
           <>
             <p className="mb-6 text-sm font-medium text-muted">
+<<<<<<< HEAD
               {items_.length} {items_.length === 1 ? "item" : "items"} up for grabs
             </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {items_.map((item) => (
+=======
+              {items.length} {items.length === 1 ? "item" : "items"} up for grabs
+            </p>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {items.map((item) => (
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
                 <ItemCard key={item.id} item={item} />
               ))}
             </div>

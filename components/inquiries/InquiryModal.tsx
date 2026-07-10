@@ -2,14 +2,21 @@
 
 import { useState } from "react";
 
+<<<<<<< HEAD
 type SubmitResult = { ok: true } | { ok: false; error: string };
 
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
 type InquiryModalProps = {
   itemTitle: string;
   isOpen: boolean;
   isLoggedIn: boolean;
   onClose: () => void;
+<<<<<<< HEAD
   onSubmit: (message: string) => Promise<SubmitResult>;
+=======
+  onSubmit: (message: string) => void;
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
 };
 
 export function InquiryModal({
@@ -20,12 +27,16 @@ export function InquiryModal({
   onSubmit,
 }: InquiryModalProps) {
   const [message, setMessage] = useState("");
+<<<<<<< HEAD
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
   const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
 
+<<<<<<< HEAD
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -41,12 +52,21 @@ export function InquiryModal({
 
     setSubmitted(true);
     setSubmitting(false);
+=======
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSubmit(message);
+    setSubmitted(true);
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
   }
 
   function handleClose() {
     setSubmitted(false);
     setMessage("");
+<<<<<<< HEAD
     setError(null);
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
     onClose();
   }
 
@@ -75,12 +95,15 @@ export function InquiryModal({
               inquiries and choose who to give it to.
             </p>
 
+<<<<<<< HEAD
             {error && (
               <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </p>
             )}
 
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
             <label
               htmlFor="inquiry-message"
               className="mt-4 block text-sm font-semibold text-ink"
@@ -106,10 +129,16 @@ export function InquiryModal({
               </button>
               <button
                 type="submit"
+<<<<<<< HEAD
                 disabled={submitting}
                 className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
               >
                 {submitting ? "Sending…" : "Send inquiry"}
+=======
+                className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+              >
+                Send inquiry
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
               </button>
             </div>
           </form>

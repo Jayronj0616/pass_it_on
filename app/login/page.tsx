@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+<<<<<<< HEAD
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,6 +35,22 @@ export default function LoginPage() {
 
     router.push("/");
     router.refresh();
+=======
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit = email.trim().length > 0 && password.length > 0;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    // Placeholder — replace with supabase.auth.signInWithPassword({ email, password })
+    setSubmitting(true);
+    console.log("login submitted:", { email, password });
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
   }
 
   return (
@@ -48,12 +65,15 @@ export default function LoginPage() {
           Welcome back — good to see you giving things a second life.
         </p>
 
+<<<<<<< HEAD
         {error && (
           <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
             {error}
           </p>
         )}
 
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
         <form onSubmit={handleSubmit} className="mt-5">
           <label htmlFor="login-email" className="block text-sm font-semibold text-ink">
             Email

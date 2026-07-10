@@ -162,6 +162,7 @@ alter table items add column removed_by_admin boolean not null default false;
 /api/admin/items/[id]/remove       → server route: toggles items.removed_by_admin, gated on caller.is_admin
 /api/admin/inquiries/[id]/close    → server route: force-sets inquiries.status = 'closed', gated on caller.is_admin
 ```
+<<<<<<< HEAD
 
 ## 10. Build Progress
 
@@ -223,3 +224,5 @@ Admin is fully wired now (see above). What's left, in the order this build has b
 Read each file before touching it — this build has consistently used the pattern of reading current state (even placeholder comments) before writing, don't assume shape from memory.
 
 User preferences to carry forward (see full list further down if this doc gets trimmed): ask for context/read files before acting, don't send code snippets unless asked, no unsolicited summaries, direct/no sugarcoating, update this section immediately after every completed task, one step at a time with confirmation before proceeding.
+=======
+>>>>>>> c98a9489027454d730cce406f24e65d63b986d31
