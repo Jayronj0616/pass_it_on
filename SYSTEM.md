@@ -162,7 +162,6 @@ alter table items add column removed_by_admin boolean not null default false;
 /api/admin/items/[id]/remove       → server route: toggles items.removed_by_admin, gated on caller.is_admin
 /api/admin/inquiries/[id]/close    → server route: force-sets inquiries.status = 'closed', gated on caller.is_admin
 ```
-<<<<<<< HEAD
 
 ## 10. Build Progress
 
@@ -211,18 +210,34 @@ alter table items add column removed_by_admin boolean not null default false;
 - `app/admin/inquiries/page.tsx` + `InquiriesPageClient.tsx` + `app/api/admin/inquiries/[id]/close/route.ts` — nested embed query (`receiver:profiles(...)`, `items(title, donator:profiles(...))`) to pull item title + both names in one query. Close route rejects if inquiry is already `closed`/`rejected`.
 - **Admin/consumer POV boundary tightened further:** `middleware.ts` now carves out one exception — admins CAN view `/items/[id]` (needed since the admin Items table links there) but NOT `/items/new` or `/` (browse). On that item detail page, `ItemDetailClient.tsx` now takes an `isAdmin` prop (fetched server-side in `app/items/[id]/page.tsx`) and replaces the "Send inquiry" button with a plain notice when true — admin accounts can look but not act like a user. **Not done:** this is UI-only. The `inquiries_insert_own` RLS policy doesn't check `is_admin`, so an admin account could still insert an inquiry by calling the API directly. Left as-is since it's not really an attack surface (it's the site owner's own account), but flagging in case that reasoning changes.
 
-**What's left overall:** `/items/new` (post form — real insert + Storage upload replacing the local `URL.createObjectURL` preview), both dashboards (`my-items`/`my-inquiries` — still mock data), and the consumer-side action routes: `approve`, `reject`, `complete`, `contact` (all still empty placeholder files, same as the admin ones were before this session).
+**What's left overall:** ~~`/items/new`, both dashboards, and the four consumer action routes~~ — done, see below.
+
+**Consumer side — now fully wired:**
+- `/items/new` — split into a Server Component (`page.tsx`, auth check + redirect to `/login` if no session) and a client component (`NewItemFormClient.tsx`) doing the real work: uploads the photo to the `item-photos` bucket at `{user_id}/{uuid}.{ext}` via the browser client, gets the public URL, then inserts into `items` with `donator_id` from the server-verified session.
+- `/dashboard/my-items` — same Server/Client split as the admin pages. Server Component reads the donator's own items (RLS already allows this via the existing items policy) plus their inquiries (RLS already allows donators to see inquiries on their own items — no admin client needed for the reads), resolves receiver display names via `public_profiles`. Client component (`MyItemsPageClient.tsx`) calls the real `approve`/`reject`/`complete` routes and applies the same local state transition it already had, now gated on a real API response instead of a timeout.
+- `/dashboard/my-inquiries` — stayed a plain Server Component (no interactivity needed). Reads the receiver's own inquiries + item info, and for any `approved` inquiry calls the `get_donator_contact` RPC directly (security definer function already enforces the ownership/approval check, so no extra gating needed here).
+- `/api/inquiries/[id]/approve` — verifies caller is the item's donator, inquiry is `pending`, and item is `available`; sets inquiry `approved`, all other pending inquiries on that item `closed`, item `reserved`.
+- `/api/inquiries/[id]/reject` — verifies caller is the item's donator and inquiry is `pending`; sets `rejected`.
+- `/api/items/[id]/complete` — verifies caller is the item's donator and item is `reserved`; sets `completed`.
+- `/api/inquiries/[id]/contact` — uses the regular (non-admin) server client since `get_donator_contact` is security definer and checks `auth.uid()` itself — no separate ownership check needed in the route.
+
+**Also resolved this session:** an unresolved git merge conflict was found across 13 files, not just the ones originally scoped — `SYSTEM.md`, `lib/supabase/client.ts`, `lib/supabase/server.ts`, `app/page.tsx`, `app/items/[id]/page.tsx`, `ItemDetailClient.tsx`, `InquiryModal.tsx`, `get_donator_contact.sql`, `app/admin/accounts/page.tsx`, `app/admin/inquiries/page.tsx`, `app/admin/page.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`. In every case HEAD had the complete real implementation and the other side was a stale mock-data stub with no unique additions — resolved by keeping HEAD and stripping markers everywhere.
+
+**Flagged, not resolved:** `components/auth/AuthGate.tsx` and `components/inquiries/InquiryForm.tsx` are still empty stub files. The auth-gating decision landed on a per-page Server Component pattern (matching `items/[id]`), so these two are now orphaned scaffold files with no code path using them — worth deleting, but left in place since deleting files isn't something the current toolset does from this session.
+
+**Still not wired:** `/profile` (still mock data, wasn't in scope this session). `app/admin/layout.tsx` still has a `// TODO: gate this layout on profiles.is_admin` comment — the middleware already does this check at the route level, so this TODO may be stale; worth a look.
+
+**Still open from §8:** inquiry rate-limiting, photo moderation — untouched.
 
 ## 11. Next Task (pick up here)
 
-Admin is fully wired now (see above). What's left, in the order this build has been going (consumer-side data wiring, then the multi-row action routes):
+Everything scoped for this session is done. Next real decisions worth making, in no particular order:
 
-1. **`/items/new`** — post-item form. Needs a real `items` insert plus a real Storage upload to the `item-photos` bucket (replacing the current local `URL.createObjectURL` preview). Path convention for uploads is already fixed by the storage RLS policies in `0002_storage_policies.sql`: must be `{user_id}/filename`.
-2. **Dashboards** — `/dashboard/my-items` and `/dashboard/my-inquiries`, still on mock data.
-3. **Consumer action routes** — `approve`, `reject`, `complete`, `contact` under `/api/*` (see §6) are still empty placeholder files. These are multi-row/conditional writes, same reasoning as the admin action routes: use `lib/supabase/admin.ts` (service role) inside the route, but gate on the caller actually owning the relevant row (donator for approve/reject/complete, receiver for contact) — there's no `is_admin` shortcut here, ownership has to be checked against the authenticated caller's own id.
+1. **Delete the orphaned stubs** — `components/auth/AuthGate.tsx`, `components/inquiries/InquiryForm.tsx` — since the per-page Server Component auth pattern won out.
+2. **`/profile`** — still mock data. Needs a real `profiles` read/update, plus note: email changes need `supabase.auth.updateUser({ email })` + re-verification, don't just write straight into `profiles.email`.
+3. **`app/admin/layout.tsx` TODO** — check whether the stale gating comment should just be removed now that middleware handles it, or whether there's a reason to double up.
+4. **§8 open items** — inquiry rate-limiting, photo moderation.
 
 Read each file before touching it — this build has consistently used the pattern of reading current state (even placeholder comments) before writing, don't assume shape from memory.
 
 User preferences to carry forward (see full list further down if this doc gets trimmed): ask for context/read files before acting, don't send code snippets unless asked, no unsolicited summaries, direct/no sugarcoating, update this section immediately after every completed task, one step at a time with confirmation before proceeding.
-=======
->>>>>>> c98a9489027454d730cce406f24e65d63b986d31

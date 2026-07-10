@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // Server-side Supabase client (anon key + user's session cookies) — for use
 // in Server Components and regular page data fetching. Respects RLS as the
 // logged-in user, same as the browser client, just usable on the server.
@@ -34,6 +33,3 @@ export async function createClient() {
     }
   );
 }
-=======
-// Server Supabase client for use in API routes (service role key — server-only, never exposed to client)
->>>>>>> c98a9489027454d730cce406f24e65d63b986d31

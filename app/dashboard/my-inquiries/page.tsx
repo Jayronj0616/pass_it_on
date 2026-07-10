@@ -1,60 +1,55 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { formatRelativeTime } from "@/lib/utils/format";
 import {
   MyInquiryCard,
   type MyInquiryData,
 } from "@/components/dashboard/MyInquiryCard";
 
-// Placeholder data — replace with a Supabase query once the DB is wired up.
-// select inquiries.*, items.title, items.photo_url, items.status as item_status
-// from inquiries join items on items.id = inquiries.item_id
-// where inquiries.receiver_id = auth.uid()
-// Contact fields below only get populated for real once /api/inquiries/[id]/contact
-// confirms status = approved and caller = receiver_id — never a direct profiles read.
-const MOCK_INQUIRIES: MyInquiryData[] = [
-  {
-    id: "i1",
-    itemId: "1",
-    itemTitle: "Oak bookshelf, 5 shelves",
-    itemPhotoUrl: null,
-    itemStatus: "available",
-    status: "pending",
-    sentAt: "2 hours ago",
-  },
-  {
-    id: "i2",
-    itemId: "2",
-    itemTitle: "Box of kids' picture books",
-    itemPhotoUrl: null,
-    itemStatus: "reserved",
-    status: "approved",
-    sentAt: "3 days ago",
-    contact: {
-      email: "mira.tan@gmail.com",
-      phone: "0917 234 5678",
-    },
-  },
-  {
-    id: "i3",
-    itemId: "3",
-    itemTitle: "Standing desk frame",
-    itemPhotoUrl: null,
-    itemStatus: "completed",
-    status: "closed",
-    sentAt: "2 weeks ago",
-  },
-  {
-    id: "i4",
-    itemId: "4",
-    itemTitle: "Ceramic plant pots (set of 3)",
-    itemPhotoUrl: null,
-    itemStatus: "available",
-    status: "rejected",
-    sentAt: "1 week ago",
-  },
-];
+export default async function MyInquiriesPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function MyInquiriesPage() {
-  const inquiries = MOCK_INQUIRIES;
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: rows } = await supabase
+    .from("inquiries")
+    .select("id, item_id, status, created_at, items(title, photo_url, status)")
+    .eq("receiver_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const approvedIds = (rows ?? [])
+    .filter((r) => r.status === "approved")
+    .map((r) => r.id);
+
+  const contactById = new Map<string, { email: string; phone: string | null }>();
+
+  await Promise.all(
+    approvedIds.map(async (inquiryId) => {
+      const { data } = await supabase
+        .rpc("get_donator_contact", { inquiry_id: inquiryId })
+        .single();
+      if (data) {
+        contactById.set(inquiryId, { email: data.email, phone: data.phone });
+      }
+    }),
+  );
+
+  const inquiries: MyInquiryData[] = (rows ?? []).map((row) => ({
+    id: row.id,
+    itemId: row.item_id,
+    itemTitle: row.items?.title ?? "Unknown item",
+    itemPhotoUrl: row.items?.photo_url ?? null,
+    itemStatus: row.items?.status ?? "available",
+    status: row.status,
+    sentAt: formatRelativeTime(row.created_at),
+    contact: contactById.get(row.id),
+  }));
 
   return (
     <div className="flex min-h-screen flex-col">
