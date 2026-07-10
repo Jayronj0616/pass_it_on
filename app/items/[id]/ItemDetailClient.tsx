@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { StatusTag } from "@/components/items/StatusTag";
 import { InquiryModal } from "@/components/inquiries/InquiryModal";
+import { ReportItemModal } from "@/components/items/ReportItemModal";
 import { createClient } from "@/lib/supabase/client";
 
 type Item = {
@@ -28,6 +29,7 @@ export function ItemDetailClient({
   isAdmin: boolean;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const isLoggedIn = userId !== null;
 
   const canInquire = item.status === "available";
@@ -48,6 +50,31 @@ export function ItemDetailClient({
       // unique(item_id, receiver_id) violation — friendlier message than the raw DB error
       if (error.code === "23505") {
         return { ok: false, error: "You've already inquired about this item." };
+      }
+      return { ok: false, error: error.message };
+    }
+
+    return { ok: true as const };
+  }
+
+  async function handleReportSubmit(reason: string, note: string) {
+    if (!userId) {
+      return { ok: false, error: "You need to be logged in to report." };
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.from("reports").insert({
+      item_id: item.id,
+      reporter_id: userId,
+      reason,
+      note: note.trim() || null,
+    });
+
+    if (error) {
+      // unique(item_id, reporter_id, status) — only blocks a duplicate OPEN
+      // report, so this means they already have one pending on this item.
+      if (error.code === "23505") {
+        return { ok: false, error: "You already have an open report on this item." };
       }
       return { ok: false, error: error.message };
     }
@@ -111,6 +138,15 @@ export function ItemDetailClient({
                 : `${item.inquiryCount} ${item.inquiryCount === 1 ? "inquiry" : "inquiries"} so far`}
             </p>
 
+            {!isAdmin && (
+              <button
+                onClick={() => setReportModalOpen(true)}
+                className="mt-2 self-start text-xs font-semibold text-muted underline-offset-2 hover:text-ink hover:underline"
+              >
+                Report this item
+              </button>
+            )}
+
             <div className="mt-auto pt-6">
               {isAdmin ? (
                 <p className="rounded-lg border border-border bg-gray-bg px-4 py-3 text-center text-sm font-medium text-muted">
@@ -141,6 +177,14 @@ export function ItemDetailClient({
         isLoggedIn={isLoggedIn}
         onClose={() => setModalOpen(false)}
         onSubmit={handleInquirySubmit}
+      />
+
+      <ReportItemModal
+        itemTitle={item.title}
+        isOpen={reportModalOpen}
+        isLoggedIn={isLoggedIn}
+        onClose={() => setReportModalOpen(false)}
+        onSubmit={handleReportSubmit}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 -- PassItOn — initial schema
 -- See SYSTEM.md §4 (core schema) and §9 (admin additions) for design notes.
 -- Admin columns are folded into this single migration since it's the only
@@ -146,7 +145,3 @@ create policy "inquiries_insert_own"
 -- reject / complete / admin force-close are multi-row, conditional writes
 -- and go through the service-role API routes in SYSTEM.md §6 and §9, not
 -- direct client writes.
-=======
--- profiles, items, inquiries tables + RLS policies
--- See SYSTEM.md §4 for full schema and RLS notes
->>>>>>> c98a9489027454d730cce406f24e65d63b986d31

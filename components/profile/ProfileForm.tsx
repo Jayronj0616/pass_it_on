@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type ProfileFormValues = {
   displayName: string;
@@ -22,6 +22,19 @@ export function ProfileForm({
   const [email, setEmail] = useState(initialValues.email);
   const [phone, setPhone] = useState(initialValues.phone);
   const [sharePhone, setSharePhone] = useState(initialValues.sharePhone);
+
+  // Resync local field state whenever the parent's initialValues change
+  // (e.g. after a save reverts `email` back to the still-unconfirmed old
+  // address). Without this, fields only ever reflect the FIRST render's
+  // initialValues — a stale-closure bug that was latent before (save always
+  // matched what the user just typed) but surfaces now that email is
+  // deliberately not written through immediately. See ProfilePageClient.
+  useEffect(() => {
+    setDisplayName(initialValues.displayName);
+    setEmail(initialValues.email);
+    setPhone(initialValues.phone);
+    setSharePhone(initialValues.sharePhone);
+  }, [initialValues]);
 
   const canSubmit = displayName.trim().length > 0 && email.trim().length > 0;
 

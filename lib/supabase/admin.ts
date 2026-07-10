@@ -8,9 +8,10 @@
 // SUPABASE_SERVICE_ROLE_KEY must be set in .env.local and must NOT be
 // prefixed with NEXT_PUBLIC_ — that prefix ships the value to the browser.
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
 export function createAdminClient() {
-  return createSupabaseClient(
+  return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {

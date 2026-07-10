@@ -1,7 +1,8 @@
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
-// TODO: gate this layout on profiles.is_admin once real auth is wired up.
-// Server-side check only — never trust a client-side flag for admin access.
+// Admin gating happens in middleware.ts (matches /admin/* via the matcher
+// config there) — logged-out users get sent to /login, non-admins to /.
+// Nothing to check here.
 export default function AdminLayout({
   children,
 }: {

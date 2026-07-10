@@ -223,20 +223,45 @@ alter table items add column removed_by_admin boolean not null default false;
 
 **Also resolved this session:** an unresolved git merge conflict was found across 13 files, not just the ones originally scoped — `SYSTEM.md`, `lib/supabase/client.ts`, `lib/supabase/server.ts`, `app/page.tsx`, `app/items/[id]/page.tsx`, `ItemDetailClient.tsx`, `InquiryModal.tsx`, `get_donator_contact.sql`, `app/admin/accounts/page.tsx`, `app/admin/inquiries/page.tsx`, `app/admin/page.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`. In every case HEAD had the complete real implementation and the other side was a stale mock-data stub with no unique additions — resolved by keeping HEAD and stripping markers everywhere.
 
-**Flagged, not resolved:** `components/auth/AuthGate.tsx` and `components/inquiries/InquiryForm.tsx` are still empty stub files. The auth-gating decision landed on a per-page Server Component pattern (matching `items/[id]`), so these two are now orphaned scaffold files with no code path using them — worth deleting, but left in place since deleting files isn't something the current toolset does from this session.
+**Also done:** removed the stale `// TODO: gate this layout on profiles.is_admin` comment from `app/admin/layout.tsx` — confirmed `middleware.ts`'s matcher already covers `/admin/*` and redirects logged-out users to `/login` and non-admins to `/` before the layout renders, so there was nothing left to check.
 
-**Still not wired:** `/profile` (still mock data, wasn't in scope this session). `app/admin/layout.tsx` still has a `// TODO: gate this layout on profiles.is_admin` comment — the middleware already does this check at the route level, so this TODO may be stale; worth a look.
+**Also resolved this session:** `supabase/migrations/0001_init.sql` still had unresolved git merge conflict markers — missed by the earlier 13-file conflict cleanup. Same resolution pattern applied: HEAD had the complete schema/RLS matching SYSTEM.md §4, the other side was a one-line stub. Kept HEAD, stripped markers.
 
-**Still open from §8:** inquiry rate-limiting, photo moderation — untouched.
+**Orphaned stubs:** `components/auth/AuthGate.tsx` and `components/inquiries/InquiryForm.tsx` moved to `_deleted/` (no `delete` capability in the current toolset — `move_file` was the closest option). Nothing referenced them; safe to `rm -rf _deleted/` once confirmed.
+
+**`/profile` — now fully wired:**
+- `app/profile/page.tsx` — Server Component, auth check + redirect to `/login`, reads own `profiles` row.
+- `app/profile/ProfilePageClient.tsx` — client component (renamed from the old single-file mock page). `display_name`/`phone`/`share_phone` write directly to `profiles` via the browser client (`profiles_update_own` RLS policy already allowed this — confirmed once 0001 was fixed).
+- **Email changes are handled separately, never written directly to `profiles.email`:** submitting a changed email calls `supabase.auth.updateUser({ email })`, which does NOT touch `auth.users.email` until the user confirms via the link sent to the new address. `profiles.email` stays on the old value in the meantime (both in the DB and in the UI state after save) — a local-only `emailConfirmationSent` flag just acknowledges the action, it's not a source of truth and doesn't survive a reload.
+- `supabase/migrations/0005_email_confirm_sync.sql` — new. Trigger on `auth.users` (`after update ... when (new.email is distinct from old.email)`) syncs `profiles.email` only once Supabase actually confirms the change. This was a deliberate choice over optimistic writes or client-side sync-on-load — see reasoning inline in the migration.
+
+**Photo moderation (flag/report, not automated) — now wired:**
+- `supabase/migrations/0006_reports.sql` — new `reports` table (`item_id`, `reporter_id`, `reason`, `note`, `status: open|resolved`). Any authenticated, non-suspended user can INSERT; no SELECT/UPDATE policy for regular users — admin-only via service-role, same pattern as everything else in §9. `unique(item_id, reporter_id, status)` blocks duplicate *open* reports from the same user but allows re-reporting after resolution.
+- `components/items/ReportItemModal.tsx` + wired into `ItemDetailClient.tsx` — "Report this item" link (hidden for admin viewers), reason dropdown + optional note, inserts into `reports`.
+- `app/admin/reports/page.tsx` + `ReportsPageClient.tsx` + `components/admin/ReportsTable.tsx` + `app/api/admin/reports/[id]/resolve/route.ts` — same Server/Client split and is_admin re-check pattern as the other admin pages. "Resolve" only clears the queue entry — actually removing an item still goes through the existing `/admin/items` remove flow, deliberately not merged into this route.
+- `components/admin/AdminSidebar.tsx` — added "Reports" nav link.
+- **Not done:** no report count on `/admin/page.tsx`'s dashboard stat cards — wasn't asked for, flagging in case it's wanted for parity with the other entities.
+
+**Still open from §8:** inquiry rate-limiting — explicitly deferred, no cap/mechanism chosen yet.
+
+**Type-checking pass (this session, after the above):** ran `npx tsc --noEmit` for the first time against the whole project — uncovered issues no manual read-through had caught.
+
+1. **Real bug, fixed:** `components/profile/ProfileForm.tsx` never resynced its internal field state when the `initialValues` prop changed after a render (no `useEffect`/`key`). Latent since the original mock code (save always echoed back exactly what was typed, so it never surfaced), but the new email-revert logic in `ProfilePageClient.tsx` (profiles.email deliberately NOT updated until confirmed) exposed it: the "check your email" banner would say one thing while the input field above it silently still showed the new unconfirmed address. Fixed with a `useEffect` syncing local state to `initialValues`.
+
+2. **False alarm, checked and dropped:** suspected `handleReportSubmit`'s inferred return type (`ok` widened to `boolean` via literal-inference rules) wouldn't satisfy the `Promise<{ok:true}|{ok:false,error:string}>` prop type on `ReportItemModal`. Verified directly with an isolated `tsc --strict` repro instead of trusting the reasoning — it compiles clean, no bug. Noting this so a future session doesn't re-flag the same non-issue.
+
+3. **Systemic, root-caused, now fixed:** none of the three Supabase client factories (`lib/supabase/client.ts`, `server.ts`, `admin.ts`) were parameterized with a generated `Database` type — every embedded relational select (`profiles(display_name)`, `items(title)`, etc.) was inferring as an array instead of a single object, and every `.rpc()` call inferred as `{}`. This predated the session (present in `admin/inquiries`, `admin/items`, `admin/page.tsx`, the approve/reject/contact routes, `dashboard/my-inquiries` — 18 pre-existing errors) and the same broken convention got copied into the new `admin/reports/page.tsx` (2 more). Root fix, not a per-file patch: generated real types via `npx supabase gen types typescript --project-id hsbapldnyiwjfdywdhlj --schema public`, then wired `Database` into all three client factories (`createBrowserClient<Database>`, `createServerClient<Database>`, `createSupabaseClient<Database>`). New file: `lib/supabase/database.types.ts` — **do not hand-edit, regenerate via the CLI command above whenever the schema changes.**
+   - **Gotcha hit along the way:** first `gen types` run was piped with plain PowerShell `>` redirect, which on this machine writes UTF-16 with a BOM by default — produced a file that LOOKED like valid generated output but was garbled/unparseable. Fixed by regenerating with `| Out-File -Encoding utf8` instead. If regenerating this file later, use the `Out-File -Encoding utf8` form, not bare `>`.
+
+4. **One more orphaned stub found this pass:** `app/items/page.tsx` — two comment lines, no exports, never wired (the real browse grid lives at `app/page.tsx` root). Same class of dead scaffold as `AuthGate.tsx`/`InquiryForm.tsx`, same treatment: moved to `_deleted/`. This is what was causing the unrelated `.next/dev/types/validator.ts` error ("is not a module") in the first `tsc` run.
+
+5. **New, different, NOT YET FIXED — pick up here next session:** after the above fixes, a second `tsc --noEmit` run surfaced a *different* class of error in 7 files (`app/admin/inquiries/page.tsx`, `app/admin/items/page.tsx`, `app/admin/reports/page.tsx`, `app/dashboard/my-inquiries/page.tsx`, `app/dashboard/my-items/page.tsx`, `app/items/[id]/page.tsx`, `app/page.tsx`). Root cause: `items.status`, `inquiries.status`, and `reports.status` are all declared in the migrations as `text ... check (status in (...))` — a runtime CHECK constraint, not a Postgres enum — so the generated `Database` type correctly types these columns as plain `string`. But every frontend component typed them as narrow string-literal unions (e.g. `"available" | "reserved" | "completed"`), so assigning the raw DB row shape to those component prop types now fails. This is a real, contained mismatch — same pattern in all 7 files, needs a cast/narrowing helper at the DB→UI boundary in each (e.g. a small `asItemStatus(s: string)` type guard/assertion, or switch to Postgres enums for these three columns and regenerate types — worth deciding which approach before touching any of the 7). Not started.
 
 ## 11. Next Task (pick up here)
 
-Everything scoped for this session is done. Next real decisions worth making, in no particular order:
-
-1. **Delete the orphaned stubs** — `components/auth/AuthGate.tsx`, `components/inquiries/InquiryForm.tsx` — since the per-page Server Component auth pattern won out.
-2. **`/profile`** — still mock data. Needs a real `profiles` read/update, plus note: email changes need `supabase.auth.updateUser({ email })` + re-verification, don't just write straight into `profiles.email`.
-3. **`app/admin/layout.tsx` TODO** — check whether the stale gating comment should just be removed now that middleware handles it, or whether there's a reason to double up.
-4. **§8 open items** — inquiry rate-limiting, photo moderation.
+1. **Fix the 7 status-typing errors above** — decide cast-at-boundary vs. Postgres enum migration first, then apply consistently across all 7 files, not just the newest ones.
+2. **Inquiry rate-limiting** (§8) — no cap or mechanism decided yet.
+3. **`/admin` dashboard reports stat** — optional, not requested yet.
 
 Read each file before touching it — this build has consistently used the pattern of reading current state (even placeholder comments) before writing, don't assume shape from memory.
 
