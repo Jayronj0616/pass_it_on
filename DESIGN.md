@@ -39,12 +39,17 @@ Single family: **Inter**, loaded via `next/font/google` in `app/layout.tsx`. No 
 ## Screens built so far
 
 Consumer-facing:
-- `/` (homepage/browse grid) — mock data in `app/page.tsx`
-- `/items/[id]` (item detail + inquiry modal) — mock data + dev-only login toggle in `ItemDetailClient.tsx`. `InquiryModal.tsx` handles logged-out / form / submitted states.
-- `/items/new` (post-item form) — `ItemForm.tsx`, includes local photo preview via `URL.createObjectURL` (no Storage upload yet)
-- `/dashboard/my-items` (donator view) — approve/reject/complete, state mutates locally via `DashboardItemCard.tsx` + `InquiryRow.tsx`
-- `/dashboard/my-inquiries` (receiver view) — `MyInquiryCard.tsx`, shows mock contact info once an inquiry is `approved`
-- `/login`, `/signup` — email/password forms; signup also collects a display name
+- `/` (marketing landing page) — **new, not in original scope, unverified.** Added this session, undocumented until now. Shown to everyone, every time — logged-out visitors and logged-in users alike (including right after login/signup), except admins, who are still redirected straight to `/admin`. Two-path hero ("Give something away" / "Find something you need") reflecting the real donator-approval asymmetry from SYSTEM.md §3, not generic marketing copy — chosen after a brainstorm/critique round against the three common generic-AI-landing-page defaults (vague hero copy, meaningless 3-feature-card rows, gratuitous animation). Uses the same tokens as everything else, no new colors/type introduced. Adds one new CSS utility, `.animate-rise-in` (fade + rise on load, respects `prefers-reduced-motion`). **Not yet run through `tsc` or visually tested** — see SYSTEM.md §12a for full detail and what's still outstanding.
+- `/browse` (browse grid) — **moved from `/` this session.** Mock data originally in `app/page.tsx`, since wired to Supabase, now living at `app/(app)/browse/page.tsx`. Previously had its own header; header removed in favor of the new shared nav in `app/(app)/layout.tsx`.
+- `/items/[id]` (item detail + inquiry modal) — mock data + dev-only login toggle in `ItemDetailClient.tsx`. `InquiryModal.tsx` handles logged-out / form / submitted states. Now under `app/(app)/items/[id]/`; its own header removed (shared nav), "Back to browse" link now correctly points to `/browse` instead of `/`.
+- `/items/new` (post-item form) — `ItemForm.tsx`, includes local photo preview via `URL.createObjectURL` (no Storage upload yet). Now under `app/(app)/items/new/`; own header removed, "Back to browse" link fixed to `/browse`.
+- `/dashboard/my-items` (donator view) — approve/reject/complete, state mutates locally via `DashboardItemCard.tsx` + `InquiryRow.tsx`. Now under `app/(app)/dashboard/my-items/`; own header removed.
+- `/dashboard/my-inquiries` (receiver view) — `MyInquiryCard.tsx`, shows mock contact info once an inquiry is `approved`. Now under `app/(app)/dashboard/my-inquiries/`; own header removed, empty-state "Browse items" link fixed to `/browse`.
+- `/messages` (chat inbox) — thread list + thread view, per-inquiry messaging. **Not in the original design scope below** — built later, undocumented until now (see SYSTEM.md §12). Uses the same token system as everything else (bubbles: sent = `--color-ink` bg/white text, received = `--color-gray-bg`), no new tokens introduced. Not confirmed whether this went through the same two-round critique process the rest of the app did. Now under `app/(app)/messages/`; own header removed in favor of shared nav (height calc adjusted so its layout still fits under the new sticky nav bar).
+- `/profile` — Now under `app/(app)/profile/`; own header removed.
+- `/login`, `/signup` — email/password forms; signup also collects a display name. Stay outside the `(app)` route group — pre-auth pages keep their own minimal header, not the shared logged-in nav.
+
+**New shared layout:** `app/(app)/layout.tsx` — one nav bar for every consumer page listed above except `/`, `/login`, `/signup`. Session-aware (Log in/Sign up when logged out, full nav when logged in). Replaces what used to be 5 separately hand-copied header blocks.
 
 Admin (`/admin/*`), same tokens but distinct chrome — fixed sidebar using `--color-ink` as background instead of the light surface, since a persistent dark sidebar is a standard way to visually separate an admin area without introducing new colors:
 - `/admin` — dashboard: stat cards + recent activity feed

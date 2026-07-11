@@ -135,6 +135,13 @@ export default function SignupPage() {
           </Link>
         </p>
       </div>
+
+      <Link
+        href="/browse"
+        className="mt-6 text-sm font-medium text-muted hover:text-ink"
+      >
+        Browse without an account
+      </Link>
     </div>
   );
 }

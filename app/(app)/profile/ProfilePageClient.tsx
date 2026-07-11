@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { ProfileForm, type ProfileFormValues } from "@/components/profile/ProfileForm";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { createClient } from "@/lib/supabase/client";
@@ -82,22 +81,6 @@ export function ProfilePageClient({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="text-xl font-extrabold tracking-tight text-ink">
-            PassItOn
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/my-items" className="text-sm font-semibold text-muted hover:text-ink">
-              My items
-            </Link>
-            <Link href="/dashboard/my-inquiries" className="text-sm font-semibold text-muted hover:text-ink">
-              My inquiries
-            </Link>
-          </div>
-        </div>
-      </header>
-
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-8 sm:px-6">
         <h1 className="text-2xl font-extrabold text-ink">Your profile</h1>
         <p className="mt-1 text-sm text-muted">

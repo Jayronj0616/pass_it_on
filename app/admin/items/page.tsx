@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { asItemStatus } from "@/lib/utils/status";
 import { ItemsPageClient } from "./ItemsPageClient";
 import type { AdminItem } from "@/components/admin/ItemsTable";
 
@@ -17,7 +18,7 @@ export default async function AdminItemsPage() {
     id: row.id,
     title: row.title,
     donatorName: row.profiles?.display_name ?? "Unknown",
-    status: row.status,
+    status: asItemStatus(row.status),
     removedByAdmin: row.removed_by_admin,
     inquiryCount: row.inquiry_count,
     createdAt: formatRelativeTime(row.created_at),

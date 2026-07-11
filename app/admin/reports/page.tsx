@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { asReportStatus } from "@/lib/utils/status";
 import { ReportsPageClient } from "./ReportsPageClient";
 import type { AdminReport } from "@/components/admin/ReportsTable";
 
@@ -21,7 +22,7 @@ export default async function AdminReportsPage() {
     reporterName: row.reporter?.display_name ?? "Unknown",
     reason: row.reason,
     note: row.note,
-    status: row.status,
+    status: asReportStatus(row.status),
     reportedAt: formatRelativeTime(row.created_at),
   }));
 

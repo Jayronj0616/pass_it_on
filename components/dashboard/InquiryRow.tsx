@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type InquiryStatus = "pending" | "approved" | "rejected" | "closed";
 
 export type InquiryData = {
@@ -54,22 +56,30 @@ export function InquiryRow({
         <p className="mt-1 text-xs text-muted">{inquiry.sentAt}</p>
       </div>
 
-      {canAct && (
-        <div className="flex shrink-0 gap-2">
-          <button
-            onClick={onReject}
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-gray-bg hover:text-ink"
-          >
-            Decline
-          </button>
-          <button
-            onClick={onApprove}
-            className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-ink/90"
-          >
-            Approve
-          </button>
-        </div>
-      )}
+      <div className="flex shrink-0 gap-2">
+        <Link
+          href={`/messages?inquiry=${inquiry.id}`}
+          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-gray-bg hover:text-ink"
+        >
+          Message
+        </Link>
+        {canAct && (
+          <>
+            <button
+              onClick={onReject}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-gray-bg hover:text-ink"
+            >
+              Decline
+            </button>
+            <button
+              onClick={onApprove}
+              className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-ink/90"
+            >
+              Approve
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

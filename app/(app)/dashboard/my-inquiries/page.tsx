@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { asItemStatus, asInquiryStatus } from "@/lib/utils/status";
 import {
   MyInquiryCard,
   type MyInquiryData,
@@ -45,33 +46,14 @@ export default async function MyInquiriesPage() {
     itemId: row.item_id,
     itemTitle: row.items?.title ?? "Unknown item",
     itemPhotoUrl: row.items?.photo_url ?? null,
-    itemStatus: row.items?.status ?? "available",
-    status: row.status,
+    itemStatus: asItemStatus(row.items?.status ?? "available"),
+    status: asInquiryStatus(row.status),
     sentAt: formatRelativeTime(row.created_at),
     contact: contactById.get(row.id),
   }));
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="text-xl font-extrabold tracking-tight text-ink"
-          >
-            PassItOn
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/my-items" className="text-sm font-semibold text-muted hover:text-ink">
-              My items
-            </Link>
-            <Link href="/profile" className="text-sm font-semibold text-muted hover:text-ink">
-              Profile
-            </Link>
-          </div>
-        </div>
-      </header>
-
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
         <h1 className="text-2xl font-extrabold text-ink">Your inquiries</h1>
         <p className="mt-1 text-sm text-muted">
@@ -101,7 +83,7 @@ function EmptyState() {
         Browse items and send an inquiry when you find something you need.
       </p>
       <Link
-        href="/"
+        href="/browse"
         className="mt-6 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
       >
         Browse items

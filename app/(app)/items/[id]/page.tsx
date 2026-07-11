@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { asItemStatus } from "@/lib/utils/status";
 import { ItemDetailClient } from "./ItemDetailClient";
 
 export default async function ItemDetailPage({
@@ -44,7 +45,7 @@ export default async function ItemDetailPage({
         title: item.title,
         description: item.description,
         photoUrl: item.photo_url,
-        status: item.status,
+        status: asItemStatus(item.status),
         inquiryCount: item.inquiry_count,
         donatorName: donator?.display_name ?? "Unknown",
         postedAt: formatRelativeTime(item.created_at),

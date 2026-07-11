@@ -67,19 +67,8 @@ export function NewItemFormClient({ userId }: { userId: string }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="text-xl font-extrabold tracking-tight text-ink"
-          >
-            PassItOn
-          </Link>
-        </div>
-      </header>
-
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-8 sm:px-6">
-        <Link href="/" className="text-sm font-semibold text-muted hover:text-ink">
+        <Link href="/browse" className="text-sm font-semibold text-muted hover:text-ink">
           ← Back to browse
         </Link>
 

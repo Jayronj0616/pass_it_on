@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { asItemStatus, asInquiryStatus } from "@/lib/utils/status";
 import { MyItemsPageClient } from "./MyItemsPageClient";
 import type { DashboardItem } from "@/components/dashboard/DashboardItemCard";
 
@@ -49,14 +50,14 @@ export default async function MyItemsDashboardPage() {
     id: row.id,
     title: row.title,
     photoUrl: row.photo_url,
-    status: row.status,
+    status: asItemStatus(row.status),
     inquiries: (inquiryRows ?? [])
       .filter((inq) => inq.item_id === row.id)
       .map((inq) => ({
         id: inq.id,
         receiverName: nameById.get(inq.receiver_id) ?? "Unknown",
         message: inq.message ?? "",
-        status: inq.status,
+        status: asInquiryStatus(inq.status),
         sentAt: formatRelativeTime(inq.created_at),
       })),
   }));

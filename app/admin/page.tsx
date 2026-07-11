@@ -14,6 +14,7 @@ export default async function AdminDashboardPage() {
     { count: completedItems },
     { count: totalInquiries },
     { count: pendingInquiries },
+    { count: openReports },
   ] = await Promise.all([
     admin.from("profiles").select("*", { count: "exact", head: true }),
     admin
@@ -38,6 +39,10 @@ export default async function AdminDashboardPage() {
       .from("inquiries")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending"),
+    admin
+      .from("reports")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "open"),
   ]);
 
   // "Recent activity" is scoped to creation events only — the schema has
@@ -95,7 +100,7 @@ export default async function AdminDashboardPage() {
         platform.
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
         <StatCard
           label="Accounts"
           value={totalAccounts ?? 0}
@@ -115,6 +120,11 @@ export default async function AdminDashboardPage() {
           label="Inquiries"
           value={totalInquiries ?? 0}
           sublabel={`${pendingInquiries ?? 0} pending review`}
+        />
+        <StatCard
+          label="Reports"
+          value={openReports ?? 0}
+          sublabel="open"
         />
       </div>
 

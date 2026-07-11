@@ -105,6 +105,7 @@ Instead:
 /items/new                 → post item form (auth required)
 /dashboard/my-items        → donator view: items + their inquiries, approve/reject/complete actions
 /dashboard/my-inquiries    → receiver view: inquiries sent + status, contact info once approved
+/messages                  → chat inbox, one thread per inquiry (see §12)
 /profile                   → edit display_name, email, phone, share_phone toggle (auth required)
 /login, /signup            → Supabase Auth (email/password or magic link)
 
@@ -113,6 +114,8 @@ Instead:
 /api/items/[id]/complete      → server route: donator marks item completed
 /api/inquiries/[id]/contact   → server route: returns donator contact if approved + owned by caller
 ```
+
+Messaging has no dedicated API routes — reads/writes go directly through the Supabase client (browser-side), gated by RLS. See §12.
 
 Approve/complete/contact routes run server-side (not pure client Supabase calls) because they involve multi-row writes (item + inquiries together) or conditional data exposure — cleaner to keep that logic off the client.
 
@@ -257,12 +260,109 @@ alter table items add column removed_by_admin boolean not null default false;
 
 5. **New, different, NOT YET FIXED — pick up here next session:** after the above fixes, a second `tsc --noEmit` run surfaced a *different* class of error in 7 files (`app/admin/inquiries/page.tsx`, `app/admin/items/page.tsx`, `app/admin/reports/page.tsx`, `app/dashboard/my-inquiries/page.tsx`, `app/dashboard/my-items/page.tsx`, `app/items/[id]/page.tsx`, `app/page.tsx`). Root cause: `items.status`, `inquiries.status`, and `reports.status` are all declared in the migrations as `text ... check (status in (...))` — a runtime CHECK constraint, not a Postgres enum — so the generated `Database` type correctly types these columns as plain `string`. But every frontend component typed them as narrow string-literal unions (e.g. `"available" | "reserved" | "completed"`), so assigning the raw DB row shape to those component prop types now fails. This is a real, contained mismatch — same pattern in all 7 files, needs a cast/narrowing helper at the DB→UI boundary in each (e.g. a small `asItemStatus(s: string)` type guard/assertion, or switch to Postgres enums for these three columns and regenerate types — worth deciding which approach before touching any of the 7). Not started.
 
-## 11. Next Task (pick up here)
+## 11. Messaging Verification (resolved)
 
-1. **Fix the 7 status-typing errors above** — decide cast-at-boundary vs. Postgres enum migration first, then apply consistently across all 7 files, not just the newest ones.
-2. **Inquiry rate-limiting** (§8) — no cap or mechanism decided yet.
-3. **`/admin` dashboard reports stat** — optional, not requested yet.
+Of the three items flagged when messaging (§12) was discovered undocumented:
+
+1. **`chat-images` bucket** — confirmed created in the Supabase dashboard, private (not public). Done.
+2. **`tsc --noEmit`** — run, surfaced exactly one error: `components/dashboard/InquiryRow.tsx` used `<Link>` (a "Message" link into `/messages?inquiry=...`) with no `import Link from "next/link"`. Fixed by adding the import. Re-run not yet reconfirmed clean after the fix — do that before trusting this is fully closed.
+3. **End-to-end manual test** — explicitly deferred by user ("will just test it myself" once deployed to Vercel). Not done, not blocking other work per user's call. Outcome not yet reported back.
+
+## 12a. Landing Page + Route Restructure — tsc clean, click-through NOT fully done, one known bug fixed mid-session
+
+Started this session, not in original scope (§1–§9) or the messaging addendum (§12). This section replaces the earlier "IN PROGRESS, NOT VERIFIED" version — several of the original unknowns are now resolved, but new work was added on top before full verification finished. Read carefully before assuming anything below is done.
+
+### Confirmed since the original unverified pass
+
+- **`npx tsc --noEmit` has been run multiple times since the restructure and is clean** as of the most recent check (after the auth-page links added at the very end of this session). Not re-run after literally the last two edits (login/signup browse links) — those are simple `<Link>` additions to already-typed pages, low risk, but technically unconfirmed.
+- **One real bug found and fixed:** `components/dashboard/InquiryRow.tsx` used `<Link>` with no `import Link from "next/link"`. Fixed.
+- **A recurring, unresolved environment issue was hit repeatedly this session:** newly-created files (via write/create, not in-place edits) intermittently vanished from disk minutes after being written — happened at least 5 times (`app/(app)/layout.tsx`, `components/auth/` entirely, `app/page.tsx` itself, `components/landing/HeroCarousel.tsx`, `components/landing/LandingFooter.tsx`). In-place edits to existing files were never affected. Root cause was investigated (OneDrive sync, VS Code, git) and never conclusively identified — git status showed no evidence of external deletion at the time checked. **Practical mitigation adopted: verify every newly-created file immediately after writing it, before building on top of it.** If a future session hits the same symptom, don't assume it's fixed — keep verifying.
+- **Click-through was NOT systematically completed.** Individual pieces were checked ad hoc as they were built (hero, carousel, sections, footer, auth pages) and confirmed working by the user each time, but the full checklist from the original §13 (`/`, `/browse`, `/messages`, `/dashboard/my-items`, `/dashboard/my-inquiries`, `/profile`, `/items/new`, `/items/[id]`, logged in and out) was never run end-to-end as one pass. Treat as spot-checked, not fully verified.
+
+### Additional work built on top this session (all new, on top of the original restructure)
+
+- **Sign-out was completely missing app-wide** (not something this session broke — predated it) — no logout anywhere: admin sidebar, consumer nav, nowhere. Fixed: new `components/auth/SignOutButton.tsx` (client component, `supabase.auth.signOut()` → redirect to `/`), wired into both `app/(app)/layout.tsx`'s nav and `components/admin/AdminSidebar.tsx`.
+- **Landing hero restructured from single centered column to two-column layout** (text left, visual right on `lg:` breakpoint, stacks on mobile) — direct response to user feedback that the original plain-text hero didn't feel distinctive enough.
+- **New `components/landing/HeroCarousel.tsx`** — client component in the hero's right column. Auto-advances every 5s, pauses on hover, manual prev/next + dot navigation. Slide source is a merge of two things:
+  1. Three static marketing photos the user supplied (`furniture.jpg`, `giving box.jpg`, `thrift.jpg`) — copied by the user into `public/landing/` (Next.js only serves static assets from `public/`; the user's original `images/` folder at project root is not web-servable and was deliberately left untouched as their own copy).
+  2. Real posted item photos, fetched client-side from `items` where `status = 'available'` and `photo_url is not null`, newest first, limit 6 — same public-read pattern `/browse` already uses, no new RLS needed. Real item slides link to `/items/[id]`; static slides don't link anywhere.
+  - `next.config.ts` already had the Supabase Storage `remotePatterns` needed for `next/image` to load these (added during the messaging work, confirmed still present, not new this session).
+- **New `components/landing/HandoffIllustration.tsx`** — hand-coded SVG illustration (two hands passing a box), built as part of an earlier "how it works" expansion. **User disliked it ("looks bad/amateurish") and it was removed from the page** — the file still exists on disk but is now an orphaned/dead import, nothing references it anymore. Same category as `_deleted/` stubs from earlier sessions — not moved there only because this was found very late in a token-constrained session; a future pass should move it to `_deleted/` for consistency.
+- **New `components/landing/LandingSections.tsx`** — "How it actually works" section (3 cards using the real `available → reserved → completed` status machine from §2, reusing `StatusTag`, not generic icon-copy) and a final "Ready to pass something on?" CTA section, both scroll-animated via Framer Motion's `whileInView` (`framer-motion` added as a new dependency, confirmed in `package.json`). The illustration section that used to sit between these two was removed per user request (see above) — file now goes straight from "How it actually works" to the final CTA.
+- **New `components/landing/LandingFooter.tsx`** — simple footer, motto + copyright + real nav links (Browse/Log in/Sign up). Deliberately does NOT link to Privacy/Terms or any other page that doesn't exist — no invented links. Wired into `app/page.tsx` after `LandingSections`.
+- **`app/login/page.tsx` and `app/signup/page.tsx`** — both previously had zero way to navigate anywhere except toggling between login/signup or back to `/` via the logo. User pointed this out as a real gap. Fixed with a minimal, deliberately-scoped addition (not the full nav, not the footer — user explicitly chose "minimal way back to browsing" to preserve the focused-auth pattern): a single "Browse without an account" link under the card, pointing to `/browse`.
+
+### What's genuinely NOT done
+
+1. **Full systematic click-through never completed as one pass** (see above) — do this first in the next session, don't assume it's covered by the piecemeal checks that happened during building.
+2. **`HandoffIllustration.tsx` is dead code** — move to `_deleted/` next session for consistency with how other orphaned files were handled.
+3. **`tsc` not re-run after the very last edit** (auth page links) — quick, low-risk, but technically unconfirmed.
+4. **§6's route table still says `/` is "browse items (public, SSR/ISR for SEO)"** — this is now wrong (that's `/browse`; `/` is the marketing landing page) and `/browse`, `/messages` aren't both correctly reflected. Needs a real edit, not done this session — deprioritized in favor of finishing the actual feature work given limited turns left.
+5. **DESIGN.md was updated for the initial restructure (route moves, shared nav) but NOT for anything built after that** — the carousel, the two-column hero, dropping the illustration section, the footer, and the auth-page links are all undocumented in DESIGN.md as of this update. Needs a follow-up pass.
+
+## 13. Next Task (pick up here)
+
+**Do these in order:**
+
+1. Run `npx tsc --noEmit` once more to confirm the last couple of edits (login/signup browse links) didn't break anything — should be a no-op given they're simple `<Link>` additions, but confirm rather than assume.
+2. Do one real, systematic click-through: `/`, `/browse`, `/messages`, `/dashboard/my-items`, `/dashboard/my-inquiries`, `/profile`, `/items/new`, `/items/[id]`, `/login`, `/signup` — logged in and logged out where relevant. This has never been done as one complete pass this session, only spot-checked piece by piece.
+3. Move `components/landing/HandoffIllustration.tsx` to `_deleted/` (orphaned, no longer imported anywhere).
+4. Update SYSTEM.md §6's route table (still says `/` is the browse grid — wrong) and DESIGN.md's screen list (missing the carousel, two-column hero, footer, auth-page links — all built after DESIGN.md's last update).
+5. **Environment note for whoever picks this up:** this session repeatedly hit newly-created files vanishing from disk minutes after being written (5+ occurrences), root cause never confirmed. Verify every new file immediately after creating it, don't trust a single successful write.
+
+After that: messaging's end-to-end manual test (§11, item 3) is still outstanding and was explicitly deferred, not abandoned. Photo moderation beyond report/flag (§8) and inquiry rate-limiting details remain unscoped — don't start speculatively.
 
 Read each file before touching it — this build has consistently used the pattern of reading current state (even placeholder comments) before writing, don't assume shape from memory.
 
 User preferences to carry forward (see full list further down if this doc gets trimmed): ask for context/read files before acting, don't send code snippets unless asked, no unsolicited summaries, direct/no sugarcoating, update this section immediately after every completed task, one step at a time with confirmation before proceeding.
+
+## 12. In-App Messaging (Chat)
+
+Added after the rest of this document was last updated — not in the original scope defined in §1–§9. Documented here after the fact from code inspection, not verified by running the app.
+
+### Model
+
+Chat threads are scoped 1:1 to an **inquiry**, not a generic user-to-user DM system — you can only message someone in the context of a specific inquiry on a specific item. This is deliberately separate from, and does not replace, the §5 contact-reveal mechanism (email/phone stays behind approval + RPC; chat is a different, broader channel).
+
+Key design choice: chat opens as soon as an inquiry is **sent** (`pending`), not gated on approval — the donor needs to be able to screen/vet a requester via chat *before* deciding whether to approve them. A thread freezes (no new sends) once its inquiry becomes `rejected` or `closed`. Approved threads stay open indefinitely (through pickup) so both sides can coordinate logistics.
+
+```sql
+messages
+  id            uuid PK
+  inquiry_id    uuid references inquiries(id) on delete cascade
+  sender_id     uuid references profiles(id) on delete cascade
+  body          text          -- nullable
+  image_path    text          -- nullable, path in private chat-images bucket
+  created_at    timestamptz default now()
+  check (body is not null or image_path is not null)
+
+message_reads   -- one row per (inquiry, user); last-viewed timestamp only,
+  inquiry_id    uuid references inquiries(id) on delete cascade   -- not a full per-message read-receipt system
+  user_id       uuid references profiles(id) on delete cascade
+  last_read_at  timestamptz default now()
+  primary key (inquiry_id, user_id)
+```
+
+### RLS
+
+- `messages` SELECT: either participant of the inquiry (receiver or the item's donator).
+- `messages` INSERT: sender must be `auth.uid()`, must be a participant, and the inquiry must be `pending` or `approved` (blocks sending once `rejected`/`closed`).
+- `message_reads`: each user can only read/write their own row, and only for inquiries they're a participant on.
+- Storage (`chat-images` bucket, **private**, not public like `item-photos`): same participant check via `storage.foldername(name)[1]` matched against `inquiry_id`. Path convention: `{inquiry_id}/{uuid}.{ext}`. Read access is via short-lived (1hr) signed URLs only (`lib/utils/chatImages.ts`) — never `getPublicUrl()`.
+- **Manual step required, not part of any migration:** the `chat-images` bucket itself must be created in the Supabase dashboard (Storage → New bucket → "chat-images" → Public **unchecked**), same as `item-photos` was. *Not confirmed whether this has actually been done — verify before relying on chat images working.*
+
+### Realtime
+
+`messages` is added to the `supabase_realtime` publication. Supabase Realtime re-evaluates the `messages_select_participant` RLS policy per subscriber, so this doesn't widen access beyond what SELECT already allows.
+
+### Frontend
+
+- `app/messages/page.tsx` — server component, builds the full thread list (one per inquiry the user's a participant in) with last-message preview, unread counts (computed from `message_reads.last_read_at`), and locked state (`rejected`/`closed` → locked). Supports deep-linking a specific thread via `?inquiry=`.
+- `app/messages/MessagesPageClient.tsx` — client component. One `postgres_changes` INSERT subscription for the whole inbox (not per-thread). Sends are not optimistic — the realtime echo is the single source of truth for appending sent messages, deliberately avoiding reconciling an optimistic copy against the real row.
+- `components/messages/` — `ThreadList`, `ThreadView`, `MessageBubble` (renders text and/or a signed-URL image), `MessageComposer` (text + single image attach, disables/shows a locked message when the inquiry is closed).
+- `lib/utils/chatImages.ts` — wraps `createSignedUrl` for the private bucket.
+- No API routes — all messaging reads/writes go through the browser Supabase client directly, relying entirely on RLS (unlike approve/reject/complete/contact, which are server routes because they need multi-row writes or conditional exposure).
+
+### Status: implemented per static review, unverified end-to-end
+
+Schema, RLS, realtime wiring, and all UI components exist and appear internally consistent (uses `asInquiryStatus` from `lib/utils/status.ts`, so it postdates that fix — confirms it was built after the last logged session). See §11 for the three specific open verification items.

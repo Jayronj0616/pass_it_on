@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { asInquiryStatus } from "@/lib/utils/status";
 import { InquiriesPageClient } from "./InquiriesPageClient";
 import type { AdminInquiry } from "@/components/admin/InquiriesTable";
 
@@ -19,7 +20,7 @@ export default async function AdminInquiriesPage() {
     itemTitle: row.items?.title ?? "Unknown item",
     receiverName: row.receiver?.display_name ?? "Unknown",
     donatorName: row.items?.donator?.display_name ?? "Unknown",
-    status: row.status,
+    status: asInquiryStatus(row.status),
     sentAt: formatRelativeTime(row.created_at),
   }));
 

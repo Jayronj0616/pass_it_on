@@ -17,3 +17,10 @@ export function formatRelativeTime(dateString: string): string {
   const diffYears = Math.floor(diffMonths / 12);
   return diffYears === 1 ? "1 year ago" : `${diffYears} years ago`;
 }
+
+export function formatMessageTime(dateString: string): string {
+  return new Date(dateString).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
