@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { ReputationBadge } from "@/components/profile/ReputationBadge";
 
 type InquiryStatus = "pending" | "approved" | "rejected" | "closed";
 
 export type InquiryData = {
   id: string;
   receiverName: string;
+  receiverDonatedTotal: number | null;
+  receiverDonatedRecent: number | null;
+  receiverReceivedTotal: number | null;
+  receiverReceivedRecent: number | null;
   message: string;
   status: InquiryStatus;
   sentAt: string;
@@ -40,10 +45,16 @@ export function InquiryRow({
   return (
     <div className="flex flex-col gap-3 border-t border-border py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-ink">
             {inquiry.receiverName}
           </p>
+          <ReputationBadge
+            donatedTotal={inquiry.receiverDonatedTotal}
+            donatedRecent={inquiry.receiverDonatedRecent}
+            receivedTotal={inquiry.receiverReceivedTotal}
+            receivedRecent={inquiry.receiverReceivedRecent}
+          />
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLE[inquiry.status]}`}
           >

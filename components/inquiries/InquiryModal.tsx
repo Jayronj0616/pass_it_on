@@ -8,6 +8,8 @@ type InquiryModalProps = {
   itemTitle: string;
   isOpen: boolean;
   isLoggedIn: boolean;
+  isEmailVerified: boolean;
+  verifyHref: string;
   onClose: () => void;
   onSubmit: (message: string) => Promise<SubmitResult>;
 };
@@ -16,6 +18,8 @@ export function InquiryModal({
   itemTitle,
   isOpen,
   isLoggedIn,
+  isEmailVerified,
+  verifyHref,
   onClose,
   onSubmit,
 }: InquiryModalProps) {
@@ -63,6 +67,12 @@ export function InquiryModal({
       >
         {!isLoggedIn ? (
           <LoggedOutState itemTitle={itemTitle} onClose={handleClose} />
+        ) : !isEmailVerified ? (
+          <UnverifiedState
+            itemTitle={itemTitle}
+            verifyHref={verifyHref}
+            onClose={handleClose}
+          />
         ) : submitted ? (
           <SubmittedState itemTitle={itemTitle} onClose={handleClose} />
         ) : (
@@ -146,6 +156,40 @@ function LoggedOutState({
           className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
         >
           Log in
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function UnverifiedState({
+  itemTitle,
+  verifyHref,
+  onClose,
+}: {
+  itemTitle: string;
+  verifyHref: string;
+  onClose: () => void;
+}) {
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-ink">Verify your email to inquire</h2>
+      <p className="mt-2 text-sm text-muted">
+        You&apos;ll need to verify your email before sending an inquiry for
+        &ldquo;{itemTitle}&rdquo;.
+      </p>
+      <div className="mt-5 flex justify-end gap-3">
+        <button
+          onClick={onClose}
+          className="rounded-lg px-4 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-gray-bg hover:text-ink"
+        >
+          Cancel
+        </button>
+        <a
+          href={verifyHref}
+          className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+        >
+          Verify email
         </a>
       </div>
     </div>

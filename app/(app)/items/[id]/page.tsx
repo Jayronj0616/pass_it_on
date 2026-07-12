@@ -24,7 +24,7 @@ export default async function ItemDetailPage({
 
   const { data: donator } = await supabase
     .from("public_profiles")
-    .select("display_name")
+    .select("display_name, donated_total, donated_recent, received_total, received_recent")
     .eq("id", item.donator_id)
     .single();
 
@@ -38,6 +38,10 @@ export default async function ItemDetailPage({
     isAdmin = viewerProfile?.is_admin === true;
   }
 
+  const isEmailVerified = userData.user
+    ? userData.user.email_confirmed_at != null
+    : false;
+
   return (
     <ItemDetailClient
       item={{
@@ -48,10 +52,16 @@ export default async function ItemDetailPage({
         status: asItemStatus(item.status),
         inquiryCount: item.inquiry_count,
         donatorName: donator?.display_name ?? "Unknown",
+        donatorDonatedTotal: donator?.donated_total ?? null,
+        donatorDonatedRecent: donator?.donated_recent ?? null,
+        donatorReceivedTotal: donator?.received_total ?? null,
+        donatorReceivedRecent: donator?.received_recent ?? null,
         postedAt: formatRelativeTime(item.created_at),
       }}
       userId={userData.user?.id ?? null}
+      userEmail={userData.user?.email ?? null}
       isAdmin={isAdmin}
+      isEmailVerified={isEmailVerified}
     />
   );
 }

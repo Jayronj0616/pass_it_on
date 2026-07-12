@@ -12,5 +12,9 @@ export default async function NewItemPage() {
     redirect("/login");
   }
 
+  if (!user.email_confirmed_at) {
+    redirect(`/verify?email=${encodeURIComponent(user.email ?? "")}`);
+  }
+
   return <NewItemFormClient userId={user.id} />;
 }

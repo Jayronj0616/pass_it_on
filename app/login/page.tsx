@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -11,6 +11,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    if (!submitting) {
+      setSlow(false);
+      return;
+    }
+    const timer = setTimeout(() => setSlow(true), 5000);
+    return () => clearTimeout(timer);
+  }, [submitting]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        router.replace("/");
+      }
+    });
+  }, [router]);
 
   const canSubmit = email.trim().length > 0 && password.length > 0;
 
@@ -81,6 +100,12 @@ export default function LoginPage() {
             placeholder="••••••••"
             className="mt-1.5 w-full rounded-lg border border-border bg-page p-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
           />
+          <Link
+            href="/forgot-password"
+            className="mt-1.5 inline-block text-xs font-semibold text-muted hover:text-ink hover:underline"
+          >
+            Forgot password?
+          </Link>
 
           <button
             type="submit"
@@ -89,6 +114,11 @@ export default function LoginPage() {
           >
             {submitting ? "Logging in..." : "Log in"}
           </button>
+          {slow && (
+            <p className="mt-2 text-center text-xs text-muted">
+              This is taking longer than expected...
+            </p>
+          )}
         </form>
 
         <p className="mt-5 text-center text-sm text-muted">

@@ -196,10 +196,10 @@ export function MessagesPageClient({
         </p>
       )}
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 overflow-hidden px-0 sm:px-6 sm:py-6">
-        <div className="card-shadow flex w-full overflow-hidden rounded-none border border-border bg-surface sm:rounded-2xl">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 overflow-hidden px-0 md:px-6 md:py-6">
+        <div className="card-shadow flex w-full overflow-hidden rounded-none border border-border bg-surface md:rounded-2xl">
           <div
-            className={`w-full flex-col border-r border-border sm:flex sm:w-80 ${
+            className={`w-full flex-col border-r border-border md:flex md:w-80 ${
               selectedInquiryId ? "hidden" : "flex"
             }`}
           >
@@ -213,7 +213,7 @@ export function MessagesPageClient({
             />
           </div>
 
-          <div className={`flex-1 flex-col sm:flex ${selectedInquiryId ? "flex" : "hidden"}`}>
+          <div className={`flex-1 flex-col md:flex ${selectedInquiryId ? "flex" : "hidden"}`}>
             {selectedThread ? (
               <ThreadView
                 itemId={selectedThread.itemId}
@@ -227,7 +227,7 @@ export function MessagesPageClient({
                 onBack={() => setSelectedInquiryId(null)}
               />
             ) : (
-              <div className="hidden flex-1 items-center justify-center sm:flex">
+              <div className="hidden flex-1 items-center justify-center md:flex">
                 <p className="text-sm text-muted">Select a conversation</p>
               </div>
             )}

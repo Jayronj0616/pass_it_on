@@ -37,7 +37,7 @@ export function ThreadView({
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <button
           onClick={onBack}
-          className="text-muted hover:text-ink sm:hidden"
+          className="text-muted hover:text-ink md:hidden"
           aria-label="Back to conversations"
         >
           <svg

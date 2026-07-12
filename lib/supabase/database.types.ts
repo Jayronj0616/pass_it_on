@@ -65,6 +65,7 @@ export type Database = {
       }
       items: {
         Row: {
+          completed_at: string | null
           created_at: string
           description: string
           donator_id: string
@@ -77,6 +78,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           description: string
           donator_id: string
@@ -89,6 +91,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           description?: string
           donator_id?: string
@@ -148,6 +151,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "message_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       messages: {
@@ -188,6 +198,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -282,15 +299,27 @@ export type Database = {
       public_profiles: {
         Row: {
           display_name: string | null
+          donated_recent: number | null
+          donated_total: number | null
           id: string | null
+          received_recent: number | null
+          received_total: number | null
         }
         Insert: {
           display_name?: string | null
+          donated_recent?: never
+          donated_total?: never
           id?: string | null
+          received_recent?: never
+          received_total?: never
         }
         Update: {
           display_name?: string | null
+          donated_recent?: never
+          donated_total?: never
           id?: string | null
+          received_recent?: never
+          received_total?: never
         }
         Relationships: []
       }

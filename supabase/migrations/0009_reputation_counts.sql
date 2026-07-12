@@ -22,7 +22,7 @@
 -- COUNT()s; recent counts add one indexed range filter on completed_at.
 -- Revisit only if this becomes a real read-performance bottleneck at scale.
 
-alter table items add column completed_at timestamptz;
+alter table items add column if not exists completed_at timestamptz;
 
 -- Set completed_at automatically whenever status transitions TO 'completed'
 -- (not on every update — only the specific status transition). Also clears
@@ -41,11 +41,13 @@ begin
 end;
 $$;
 
+drop trigger if exists on_item_status_change_set_completed_at on items;
+
 create trigger on_item_status_change_set_completed_at
   before update on items
   for each row execute function set_item_completed_at();
 
-create index items_completed_at_idx on items (completed_at) where completed_at is not null;
+create index if not exists items_completed_at_idx on items (completed_at) where completed_at is not null;
 
 -- Replace public_profiles with the extended version. Views can't be
 -- ALTERed to add columns — drop and recreate. Same grants as before.

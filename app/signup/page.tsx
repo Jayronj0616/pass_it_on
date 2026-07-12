@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+type NameCheckStatus = "idle" | "checking" | "available" | "taken";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -12,9 +14,49 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameCheckStatus, setNameCheckStatus] = useState<NameCheckStatus>("idle");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        router.replace("/");
+      }
+    });
+  }, [router]);
+
+  useEffect(() => {
+    const trimmed = displayName.trim();
+    if (trimmed.length === 0) {
+      setNameCheckStatus("idle");
+      return;
+    }
+
+    setNameCheckStatus("checking");
+    const timeout = setTimeout(async () => {
+      const supabase = createClient();
+      const { data, error: checkError } = await supabase
+        .from("public_profiles")
+        .select("id")
+        .ilike("display_name", trimmed)
+        .limit(1);
+
+      if (checkError) {
+        // Fail open — don't block typing on a check failure, submit will
+        // still catch a real collision via the DB unique index.
+        setNameCheckStatus("idle");
+        return;
+      }
+
+      setNameCheckStatus(data && data.length > 0 ? "taken" : "available");
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [displayName]);
 
   const canSubmit =
     displayName.trim().length > 0 &&
+    nameCheckStatus === "available" &&
     email.trim().length > 0 &&
     password.length >= 6;
 
@@ -28,11 +70,19 @@ export default function SignupPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: { data: { display_name: displayName.trim() } },
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      // Backstop for the race condition where two people grab the same name
+      // between the live check and this submit — the DB unique index
+      // (0010_display_name_unique.sql) is the actual source of truth.
+      const message = /duplicate key|profiles_display_name_lower_idx/i.test(
+        signUpError.message
+      )
+        ? "That username was just taken — please choose another."
+        : signUpError.message;
+      setError(message);
       setSubmitting(false);
       return;
     }
@@ -42,9 +92,8 @@ export default function SignupPage() {
 
     if (!data.session) {
       // Email confirmation is enabled — no session yet, user needs to
-      // confirm via email before they can log in.
-      setError("Check your email to confirm your account before logging in.");
-      setSubmitting(false);
+      // verify via the OTP code before they can do anything requiring auth.
+      router.push(`/verify?email=${encodeURIComponent(email)}`);
       return;
     }
 
@@ -85,9 +134,20 @@ export default function SignupPage() {
             placeholder="e.g. Jayron"
             className="mt-1.5 w-full rounded-lg border border-border bg-page p-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
           />
-          <p className="mt-1 text-xs text-muted">
-            Shown to other users — not your real name if you&apos;d rather not.
-          </p>
+          {nameCheckStatus === "checking" && (
+            <p className="mt-1 text-xs text-muted">Checking availability...</p>
+          )}
+          {nameCheckStatus === "available" && (
+            <p className="mt-1 text-xs text-green-text">Available</p>
+          )}
+          {nameCheckStatus === "taken" && (
+            <p className="mt-1 text-xs text-red-700">Already taken</p>
+          )}
+          {nameCheckStatus === "idle" && (
+            <p className="mt-1 text-xs text-muted">
+              Shown to other users — not your real name if you&apos;d rather not.
+            </p>
+          )}
 
           <label
             htmlFor="signup-email"

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { MobileNavDrawer } from "@/components/nav/MobileNavDrawer";
 
 // Shared nav for every consumer-facing page (/browse, /messages, /dashboard/*,
 // /profile, /items/*). Admins never reach here — middleware.ts redirects
@@ -29,7 +30,7 @@ export default async function AppLayout({
             </p>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="hidden items-center gap-4 md:flex">
             <Link
               href="/browse"
               className="text-sm font-semibold text-muted hover:text-ink"
@@ -88,6 +89,8 @@ export default async function AppLayout({
               </>
             )}
           </div>
+
+          <MobileNavDrawer isLoggedIn={!!user} />
         </div>
       </header>
 

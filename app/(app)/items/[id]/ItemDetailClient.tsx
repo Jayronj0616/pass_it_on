@@ -6,6 +6,7 @@ import Link from "next/link";
 import { StatusTag } from "@/components/items/StatusTag";
 import { InquiryModal } from "@/components/inquiries/InquiryModal";
 import { ReportItemModal } from "@/components/items/ReportItemModal";
+import { ReputationBadge } from "@/components/profile/ReputationBadge";
 import { createClient } from "@/lib/supabase/client";
 
 type Item = {
@@ -16,17 +17,25 @@ type Item = {
   status: "available" | "reserved" | "completed";
   inquiryCount: number;
   donatorName: string;
+  donatorDonatedTotal: number | null;
+  donatorDonatedRecent: number | null;
+  donatorReceivedTotal: number | null;
+  donatorReceivedRecent: number | null;
   postedAt: string;
 };
 
 export function ItemDetailClient({
   item,
   userId,
+  userEmail,
   isAdmin,
+  isEmailVerified,
 }: {
   item: Item;
   userId: string | null;
+  userEmail: string | null;
   isAdmin: boolean;
+  isEmailVerified: boolean;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -37,6 +46,10 @@ export function ItemDetailClient({
   async function handleInquirySubmit(message: string) {
     if (!userId) {
       return { ok: false, error: "You need to be logged in to inquire." };
+    }
+
+    if (!isEmailVerified) {
+      return { ok: false, error: "Verify your email before sending an inquiry." };
     }
 
     const supabase = createClient();
@@ -116,9 +129,17 @@ export function ItemDetailClient({
             <h1 className="text-3xl font-extrabold leading-tight text-ink">
               {item.title}
             </h1>
-            <p className="mt-1 text-sm font-medium text-muted">
-              Posted by {item.donatorName} · {item.postedAt}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-muted">
+                Posted by {item.donatorName} · {item.postedAt}
+              </p>
+              <ReputationBadge
+                donatedTotal={item.donatorDonatedTotal}
+                donatedRecent={item.donatorDonatedRecent}
+                receivedTotal={item.donatorReceivedTotal}
+                receivedRecent={item.donatorReceivedRecent}
+              />
+            </div>
 
             <p className="mt-4 text-sm leading-relaxed text-ink">
               {item.description}
@@ -167,6 +188,8 @@ export function ItemDetailClient({
         itemTitle={item.title}
         isOpen={modalOpen}
         isLoggedIn={isLoggedIn}
+        isEmailVerified={isEmailVerified}
+        verifyHref={`/verify?email=${encodeURIComponent(userEmail ?? "")}`}
         onClose={() => setModalOpen(false)}
         onSubmit={handleInquirySubmit}
       />
