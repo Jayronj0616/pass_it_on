@@ -370,7 +370,9 @@ User wants UX polish around auth transitions. Both timeout threshold (5 seconds)
 
 `tsc --noEmit` run after all four — clean, user confirmed.
 
-**Also still open, logged previously, NOT YET FIXED:**
+**Also still open, logged previously, NOW DONE — custom 404 page:**
+
+Flagged by Claude, not previously in scope. Checked: no `not-found.tsx` existed anywhere in the app (checked both `app/` root and `app/(app)/`), meaning any bad URL or deleted item fell through to Next.js's default unbranded 404. **DONE.** New `app/not-found.tsx` — root-level, covers the whole app regardless of route group. Same visual pattern as `/login`/`/verify` (centered, `PassItOn` wordmark), "Browse items" and "Go home" links to route the user back into the app instead of a dead end.
 
 ~~Logged-in users can still navigate to `/login` and `/signup`...~~ **DONE.** Both `app/login/page.tsx` and `app/signup/page.tsx` now run a `useEffect` on mount that calls `supabase.auth.getUser()` and `router.replace("/")` if a session exists. Redirect target confirmed by user: `/` (landing page), not `/browse`. Implemented as a client-side check (both files are already `"use client"` components) rather than converting to a Server Component + `redirect()` like `/profile`/`/items/new` use — simpler, no structural change, but means there's a brief flash of the form before the redirect fires on mount, unlike the server-side pattern used elsewhere. Not yet run through `tsc` after this change.
 
