@@ -512,3 +512,29 @@ Five gaps identified as real (not generic SaaS feature-listing) for a pickup-bas
 
 None of the five are scheduled. Don't start building any of them speculatively — confirm which one(s), if any, before writing code.
 
+## 15. Admin can post items — DONE, tsc NOT yet run since this change
+
+User wants admin accounts to be able to post an item (as themselves — `donator_id` = admin's own id, confirmed, not on-behalf-of-another-user).
+
+**Built:**
+- `app/admin/items/new/page.tsx` — Server Component. Re-checks `is_admin` itself (same defense-in-depth pattern as every other admin route), redirects logged-out to `/login`, non-admin to `/`. **Deliberately does NOT check `user.email_confirmed_at`** — the §14c verification gate exists to stop unverified/spam signups from posting; doesn't apply to a manually-provisioned admin account already behind the stronger `is_admin` check. This was a judgment call, not something the user explicitly specified — flagging in case it's ever questioned.
+- `app/admin/items/new/AdminNewItemFormClient.tsx` — near-identical to the consumer `NewItemFormClient.tsx` (same `ItemForm` component, same upload-then-insert logic, `donator_id = userId` i.e. the admin's own account), but: no outer page chrome (renders inside `app/admin/layout.tsx`'s existing `<main>` wrapper, unlike the consumer version which builds its own full-page header), redirects to `/admin/items` on success instead of `/dashboard/my-items`, back-link goes to `/admin/items` instead of `/browse`.
+- `app/admin/items/ItemsPageClient.tsx` — added a "Post item" button in the page header, links to `/admin/items/new`. Entry point lives on the Items list page itself, not the sidebar nav — deliberate choice to avoid cluttering `AdminSidebar.tsx`'s nav for an action that's contextual to the Items page, not a standalone section.
+- **RLS:** no changes needed — `items_insert_own` already allowed this (`donator_id = auth.uid()`), confirmed before building rather than assumed.
+- **`middleware.ts`:** no changes needed — `/admin/items/new` already matches `isAdminRoute` (`pathname.startsWith("/admin")`), so it's automatically allowed for admins and blocked for everyone else via the existing logic. Re-confirmed this was still accurate after the route restructure before relying on it.
+
+**Not done:** `npx tsc --noEmit` not yet run since this change.
+
+## 16. Admin notification bell (item posted) — DONE, tsc NOT yet run since this change
+
+In-app only (no email — confirmed), fires for every item posted including an admin's own (confirmed), real-time (confirmed, same `postgres_changes` pattern as messaging).
+
+**Built:**
+- `supabase/migrations/0011_admin_notifications.sql` — applied. New `admin_notification_reads` table (one row per admin, `last_read_at` — same shape as messaging's `message_reads`, reused deliberately rather than inventing a new pattern). No per-event notifications table — unread count is computed as `count(items where created_at > last_read_at)`, since "every item post" is the entire trigger and `items.created_at` already has what's needed. New `get_admin_last_read()` function (get-or-create, `security invoker`): defaults a brand-new admin's `last_read_at` to "now" on first call, so they don't see every item ever posted as unread on first load — this was a judgment call I made, not explicitly specified, flagging in case it's questioned. `items` added to the `supabase_realtime` publication (wasn't previously — only `messages` was, from 0008).
+- `database.types.ts` regenerated against this migration, confirmed present (`admin_notification_reads` table + `get_admin_last_read` function both showed up correctly) before building anything against it.
+- `components/admin/NotificationBell.tsx` — new. On mount: calls `get_admin_last_read()`, then a `count: 'exact', head: true` query for items posted after that timestamp for the initial badge count. Subscribes to `items` INSERT via realtime for live updates (increments count client-side rather than re-querying on every event). Click: updates `admin_notification_reads.last_read_at` to now, resets the badge, navigates to `/admin/items`.
+- Wired into both the mobile top bar and desktop `<aside>` in `AdminSidebar.tsx`, next to the PassItOn wordmark in both.
+- **Not built:** no dropdown/preview list of which items — just a count + navigate. Deliberately kept minimal, consistent with how reports-resolve stayed a simple queue-clear rather than merged UI. Revisit if a preview list is wanted later.
+
+**Not done:** `npx tsc --noEmit` not yet run since this change.
+

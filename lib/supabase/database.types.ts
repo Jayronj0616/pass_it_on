@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notification_reads: {
+        Row: {
+          admin_id: string
+          last_read_at: string
+        }
+        Insert: {
+          admin_id: string
+          last_read_at?: string
+        }
+        Update: {
+          admin_id?: string
+          last_read_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notification_reads_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notification_reads_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inquiries: {
         Row: {
           created_at: string
@@ -325,6 +355,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_admin_last_read: { Args: never; Returns: string }
       get_donator_contact: {
         Args: { inquiry_id: string }
         Returns: {

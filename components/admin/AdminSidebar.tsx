@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { NotificationBell } from "@/components/admin/NotificationBell";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
@@ -51,27 +52,30 @@ export function AdminSidebar() {
         <Link href="/" className="text-base font-extrabold tracking-tight text-white">
           PassItOn <span className="font-semibold text-white/50">Admin</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6"
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open menu"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10"
           >
-            <line x1="4" y1="7" x2="20" y2="7" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="17" x2="20" y2="17" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -123,9 +127,12 @@ export function AdminSidebar() {
       {/* Desktop sidebar — unchanged from before, just hidden below md now */}
       <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-ink md:flex">
         <div className="px-5 py-6">
-          <Link href="/" className="text-lg font-extrabold tracking-tight text-white">
-            PassItOn
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link href="/" className="text-lg font-extrabold tracking-tight text-white">
+              PassItOn
+            </Link>
+            <NotificationBell />
+          </div>
           <p className="mt-0.5 text-xs font-semibold text-white/50">Admin</p>
         </div>
 

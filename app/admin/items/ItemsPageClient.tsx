@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ItemsTable, type AdminItem } from "@/components/admin/ItemsTable";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
@@ -43,11 +44,21 @@ export function ItemsPageClient({
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-ink">Items</h1>
-      <p className="mt-1 text-sm text-muted">
-        Every listing on the platform, regardless of status. Removing an item
-        hides it from public browse but keeps the record.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-ink">Items</h1>
+          <p className="mt-1 text-sm text-muted">
+            Every listing on the platform, regardless of status. Removing an item
+            hides it from public browse but keeps the record.
+          </p>
+        </div>
+        <Link
+          href="/admin/items/new"
+          className="shrink-0 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+        >
+          Post item
+        </Link>
+      </div>
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
