@@ -40,16 +40,35 @@ export default function LoginPage() {
     setError(null);
 
     const supabase = createClient();
+
+    const { data: locked, error: lockCheckError } = await supabase.rpc(
+      "check_login_locked",
+      { p_email: email.trim() },
+    );
+
+    // Fail open on the lock-check itself — if this query fails for some
+    // unrelated reason, don't block a legitimate login attempt over it.
+    if (!lockCheckError && locked) {
+      setError(
+        "Too many failed attempts. Try again in a few minutes, or reset your password.",
+      );
+      setSubmitting(false);
+      return;
+    }
+
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (signInError) {
+      await supabase.rpc("record_failed_login", { p_email: email.trim() });
       setError(signInError.message);
       setSubmitting(false);
       return;
     }
+
+    await supabase.rpc("reset_login_attempts", { p_email: email.trim() });
 
     router.push("/");
     router.refresh();

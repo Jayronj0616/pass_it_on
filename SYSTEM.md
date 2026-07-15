@@ -135,7 +135,7 @@ Approve/complete/contact routes run server-side (not pure client Supabase calls)
 - Rate-limiting inquiries (stop one user spamming every item) — worth a simple per-user daily cap if abuse becomes a concern.
 - Photo moderation — none currently in scope; flag if needed later.
 - **Password reset / forgot-password flow — DONE, tsc clean (user confirmed).** Built per user's explicit flow: "forgot password" sends an email with a reset link. New `app/forgot-password/page.tsx` (email input, calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: <origin>/reset-password })`, generic "if that email exists" success message — deliberately doesn't confirm/deny whether the email is registered) and `app/reset-password/page.tsx` (new password + confirm fields, checks a session actually landed from the emailed link before allowing submit, calls `supabase.auth.updateUser({ password })`, redirects to `/login` on success). Both follow the same visual/loading-state/5s-slow-message pattern established in the auth-UX-polish pass. `app/login/page.tsx` gained a "Forgot password?" link under the password field, confirmed placement by user. **Dashboard redirect allowlist — DONE for dev.** `http://localhost:3000/reset-password` confirmed added to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs (screenshot confirmed). **Still outstanding: production domain's `/reset-password` needs to be added once deployed** — not done yet since there's no production URL to add. Flow is now testable end-to-end in dev.
-- **Login rate-limiting — MISSING.** Nothing currently limits repeated failed login attempts on an account (contrast with the existing 10/day inquiry cap in `0007_inquiry_rate_limit.sql`). Lower urgency for a small app, but noting the asymmetry: inquiries are rate-limited, login attempts are not.
+- **Login rate-limiting — DONE, tsc clean (user confirmed).** See §17 for full detail.
 
 ## 9. Admin
 
@@ -524,6 +524,27 @@ User wants admin accounts to be able to post an item (as themselves — `donator
 - **`middleware.ts`:** no changes needed — `/admin/items/new` already matches `isAdminRoute` (`pathname.startsWith("/admin")`), so it's automatically allowed for admins and blocked for everyone else via the existing logic. Re-confirmed this was still accurate after the route restructure before relying on it.
 
 **Not done:** `npx tsc --noEmit` not yet run since this change.
+
+## 17. Login rate-limiting — DONE, tsc clean (user confirmed)
+
+Flagged by Claude (not previously in scope), building on the existing asymmetry that inquiries had a rate-limit trigger (`0007`) but login attempts had none. Confirmed via current web search before building: Supabase Auth's own rate limiting is IP-based (a generic token-bucket across auth endpoints) and does NOT protect a single account from unlimited wrong-password attempts — this wasn't duplicating existing protection.
+
+**Decisions confirmed with user:**
+- 5 failed attempts within a 15-minute sliding window locks the account for 5 minutes.
+- Self-healing (time-based unlock), not a hard lock needing admin/email intervention — deliberate, since a permanent lock would let anyone lock a stranger out of their own account just by failing their login a few times.
+- Account-based, not IP-based — avoids locking out shared networks (school/office wifi) and matches the actual threat model better than IP would.
+- Lock-check timing: check only happens as part of the same round-trip as recording an attempt, not as a separate always-on query before every login. Reasoning discussed with user: checking before every attempt adds latency to the common case (correct password, first try) to protect against a rare scenario (active lockout); checking only after a failure costs nothing on the happy path.
+
+**Built:**
+- `supabase/migrations/0012_login_rate_limit.sql` — applied. Adds `failed_login_count`, `locked_until`, `last_failed_login_at` to `profiles`. **Real bug caught and fixed before this shipped:** the first draft used the existing shared `updated_at` column to track "time of last failure" for the sliding window — wrong, since `updated_at` can be touched by unrelated profile edits (display name, phone, the `0005` email-confirm-sync trigger), which would have silently corrupted the window. Fixed by adding a dedicated `last_failed_login_at` column instead. Also added `profiles_email_lower_idx` (unique index on `lower(email)`) — `profiles.email` had no index at all before this migration despite being looked up on every login; three new functions:
+  - `check_login_locked(p_email)` — returns whether the account is currently locked. If a stored `locked_until` has already passed, clears it and resets the count in the same call (the sliding window "forgets" naturally, no cron/scheduled job needed).
+  - `record_failed_login(p_email)` — called after a failed Supabase sign-in attempt. Increments the count (or resets to 1 if the last failure was outside the 15-minute window), sets `locked_until` if the count hits 5. Silently no-ops for an email with no matching account — deliberately doesn't leak whether an email exists via this path either, consistent with the forgot-password page's same choice.
+  - `reset_login_attempts(p_email)` — called after a successful sign-in, clears the count and any lock.
+  - All three granted `execute` to `anon` explicitly (not just `authenticated`) — these run before a session exists, since failed/locked login is by definition pre-auth.
+- `app/login/page.tsx` — `handleSubmit` now calls `check_login_locked` first; if locked, shows "Too many failed attempts. Try again in a few minutes, or reset your password." and skips calling Supabase entirely (fails open if the lock-check query itself errors, so a lock-check failure never blocks a legitimate login). On a failed `signInWithPassword`, calls `record_failed_login`. On success, calls `reset_login_attempts` before redirecting.
+- `database.types.ts` regenerated against `0012` (after the migration was applied, correct order confirmed with user), `npx tsc --noEmit` run after — clean, user confirmed.
+
+**Not done / not discussed:** no UI surfacing of the lock elsewhere (e.g. `/forgot-password` doesn't mention if an account is currently locked — matches the deliberate no-enumeration pattern already used there, not an oversight). No admin-side visibility into locked accounts (e.g. `/admin/accounts` doesn't show `locked_until`) — not asked for, flagging in case it's wanted later.
 
 ## 16. Admin notification bell (item posted) — DONE, tsc NOT yet run since this change
 

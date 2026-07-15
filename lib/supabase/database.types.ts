@@ -244,8 +244,11 @@ export type Database = {
           created_at: string
           display_name: string
           email: string
+          failed_login_count: number
           id: string
           is_admin: boolean
+          last_failed_login_at: string | null
+          locked_until: string | null
           phone: string | null
           share_phone: boolean
           suspended: boolean
@@ -254,8 +257,11 @@ export type Database = {
           created_at?: string
           display_name: string
           email: string
+          failed_login_count?: number
           id: string
           is_admin?: boolean
+          last_failed_login_at?: string | null
+          locked_until?: string | null
           phone?: string | null
           share_phone?: boolean
           suspended?: boolean
@@ -264,8 +270,11 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string
+          failed_login_count?: number
           id?: string
           is_admin?: boolean
+          last_failed_login_at?: string | null
+          locked_until?: string | null
           phone?: string | null
           share_phone?: boolean
           suspended?: boolean
@@ -355,6 +364,7 @@ export type Database = {
       }
     }
     Functions: {
+      check_login_locked: { Args: { p_email: string }; Returns: boolean }
       get_admin_last_read: { Args: never; Returns: string }
       get_donator_contact: {
         Args: { inquiry_id: string }
@@ -363,6 +373,8 @@ export type Database = {
           phone: string
         }[]
       }
+      record_failed_login: { Args: { p_email: string }; Returns: undefined }
+      reset_login_attempts: { Args: { p_email: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

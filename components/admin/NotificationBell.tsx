@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,6 +12,9 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const channelNameRef = useRef(
+    `admin-item-notifications-${Math.random().toString(36).slice(2)}`
+  );
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,7 +49,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
     init();
 
     const channel = supabase
-      .channel("admin-item-notifications")
+      .channel(channelNameRef.current)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "items" },
