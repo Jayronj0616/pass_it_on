@@ -559,3 +559,44 @@ In-app only (no email — confirmed), fires for every item posted including an a
 
 **Not done:** `npx tsc --noEmit` not yet run since this change.
 
+## 18. Gap-closing pass (trust/safety, legal, deploy) — measured 2026-09-10
+
+Triggered by a full gap-analysis review of the system against this doc (Claude, not user-initiated finding). Five items identified, ranked by risk-reduction-per-effort: legal pages, signup + message rate limiting, production deploy, error tracking, full click-through. Working through 1-by-1, same pattern as §14.
+
+### 18a. Privacy Policy + Terms of Service — DONE, tsc clean
+
+- New `app/privacy/page.tsx`, `app/terms/page.tsx` — static content pages, same visual chrome as `not-found.tsx` (wordmark, back link). Content: what's collected, how it's used (contact reveal only on approval, per §5), who it's shared with (Supabase as processor, no ad/analytics sharing), user choices, and a Terms page covering free-donation model, user responsibility for in-person exchanges, as-is item condition, moderation rights.
+- `components/landing/LandingFooter.tsx` — added Privacy/Terms links (footer nav wrapped in `flex-wrap` since it now has 5 links instead of 3, to stay safe at narrow widths).
+- Placeholder/generic legal language, not reviewed by a lawyer — flag if this app is used for real (non-personal-project) traffic.
+
+### 18b. Signup + message rate limiting — DONE, APPLIED TO LIVE DB, tsc clean
+
+Closes the gap flagged in the review: only login (0012) and inquiries (0007) had caps before this.
+
+- **`supabase/migrations/0013_message_rate_limit.sql`** — same `before insert` trigger shape as 0007, on `messages` instead of `inquiries`. 60/hour per `sender_id` (hourly not daily — messaging is legitimately higher-frequency than sending a new inquiry).
+- **`supabase/migrations/0014_signup_rate_limit.sql`** — new `signup_attempts` table + `check_and_record_signup_attempt(p_ip)` function, 5/hour per IP. Unlike 0007/0012, there's no account to key off before signup completes, so this is IP-scoped — and unlike 0012's functions, deliberately **not** granted to `anon`/`authenticated`, since the IP argument must only ever come from a trusted server-side header read, never a client-supplied value (a browser-side RPC call could just lie about its own IP).
+- **New `app/api/auth/check-signup-limit/route.ts`** — server route, reads `x-forwarded-for`/`x-real-ip` from the request, calls the function above via the admin (service-role) client, returns `{ allowed }`. Fails open on an unexpected DB error, same reasoning as the login lock-check.
+- **`app/signup/page.tsx`** — `handleSubmit` now calls this route before `supabase.auth.signUp()`; shows "Too many signups from this network. Try again later." and stops if not allowed.
+- **Remote migration history was untracked — found and fixed before pushing.** `supabase migration list` showed the remote had **zero** migrations in its CLI tracking history even though 0001–0012 were visibly live — every previous migration in this project was applied by hand through the Dashboard SQL editor, never via CLI `db push`. Pushing 0013/0014 without fixing this first would have made the CLI try to replay all 14 from scratch and fail on "already exists." Fixed with `supabase migration repair --status applied 0001 0002 ... 0012` (marks history correct WITHOUT re-executing anything already live) — done with explicit user confirmation, since it's a live production database.
+- **`supabase db push`** — applied 0013 and 0014 for real. Confirmed via `supabase migration list` afterward (both now show a Remote timestamp).
+- **`database.types.ts` regenerated** (`npx supabase gen types typescript --project-id hsbapldnyiwjfdywdhlj --schema public | Out-File -Encoding utf8`) — confirmed `check_and_record_signup_attempt` and the `messages_rate_limit`/`signup_attempts` shapes present before trusting it.
+- `npx tsc --noEmit` and `npm run lint` — both clean.
+
+### 18c. Production deploy — BLOCKED, needs user's Vercel login
+
+- No deploy config existed (`vercel.json` absent) and Vercel CLI wasn't installed locally.
+- Vercel CLI installed globally this session (`npm install -g vercel`, v59.15.1). `vercel whoami` confirms **logged out** — deploying requires an interactive browser-based login Claude can't complete on the user's behalf.
+- **Next step for the user:** run `! vercel login` in this session (per the CLI's own suggestion), then Claude can run `vercel` (link the project) and `vercel --prod` (deploy), set the three required env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — see §10) in the Vercel project settings, and once a production URL exists, add `<production-url>/reset-password` to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs (the dev-only version of this was done per §8, production was explicitly left as "not done yet since there's no production URL to add" — this closes that).
+- A Claude Code Vercel plugin (`vercel@claude-plugins-official`) was surfaced by the CLI itself when checking login state — not installed or used, flagging in case it's a faster path than raw CLI once the user is ready.
+
+### 18d. Error tracking — BLOCKED, needs user's Sentry account
+
+- No error tracking/observability exists anywhere — `app/page.tsx`'s browse-grid errors currently just `console.error` (§10), and this is true project-wide, not just there.
+- Same shape of blocker as §14c's Resend/SMTP setup: adding `@sentry/nextjs` needs a Sentry account + DSN, which is the user's to create — not started, not guessed at. Ask the user whether they want this (and which tier/plan) before writing any Sentry-wrapping code.
+
+### 18e. Full click-through — NOT DONE, unchanged from §12a/§13
+
+Still the same outstanding item logged previously: a full logged-in/out click-through across all routes, now including mobile widths, has never been run as one systematic pass. Not attempted this session — sequenced after the above since it depends on the DB migration being live (message rate limiting) and ideally a real deploy to test against instead of only `localhost`.
+
+**Blocked-on-user summary for this section:** §18b is now fully done — migrations live, types regenerated, tsc clean. One thing still needs the user directly: run `! vercel login` for §18c before deploy can proceed. Sentry (§18d) is a decision to make, not just a login — ask before starting. §18e (click-through) is sequenced after deploy.
+

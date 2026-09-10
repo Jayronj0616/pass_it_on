@@ -73,6 +73,16 @@ export default function SignupPage() {
     setSubmitting(true);
     setError(null);
 
+    const limitRes = await fetch("/api/auth/check-signup-limit", {
+      method: "POST",
+    });
+    const { allowed } = await limitRes.json();
+    if (!allowed) {
+      setError("Too many signups from this network. Try again later.");
+      setSubmitting(false);
+      return;
+    }
+
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,

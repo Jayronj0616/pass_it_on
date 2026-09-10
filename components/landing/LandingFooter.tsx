@@ -13,7 +13,7 @@ export function LandingFooter() {
           </p>
         </div>
 
-        <nav className="flex items-center gap-5">
+        <nav className="flex flex-wrap items-center justify-center gap-5">
           <Link href="/browse" className="text-sm font-medium text-muted hover:text-ink">
             Browse
           </Link>
@@ -22,6 +22,12 @@ export function LandingFooter() {
           </Link>
           <Link href="/signup" className="text-sm font-medium text-muted hover:text-ink">
             Sign up
+          </Link>
+          <Link href="/privacy" className="text-sm font-medium text-muted hover:text-ink">
+            Privacy
+          </Link>
+          <Link href="/terms" className="text-sm font-medium text-muted hover:text-ink">
+            Terms
           </Link>
         </nav>
 
