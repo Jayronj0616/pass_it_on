@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useId, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,9 +12,8 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-  const channelNameRef = useRef(
-    `admin-item-notifications-${Math.random().toString(36).slice(2)}`
-  );
+  const instanceId = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const channelNameRef = useRef(`admin-item-notifications-${instanceId}`);
 
   useEffect(() => {
     const supabase = createClient();

@@ -11,7 +11,6 @@ export default async function AdminDashboardPage() {
     { count: totalItems },
     { count: availableItems },
     { count: reservedItems },
-    { count: completedItems },
     { count: totalInquiries },
     { count: pendingInquiries },
     { count: openReports },
@@ -30,10 +29,6 @@ export default async function AdminDashboardPage() {
       .from("items")
       .select("*", { count: "exact", head: true })
       .eq("status", "reserved"),
-    admin
-      .from("items")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "completed"),
     admin.from("inquiries").select("*", { count: "exact", head: true }),
     admin
       .from("inquiries")

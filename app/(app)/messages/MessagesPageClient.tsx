@@ -124,9 +124,11 @@ export function MessagesPageClient({
   }
 
   useEffect(() => {
-    if (initialSelectedInquiryId) {
-      loadMessages(initialSelectedInquiryId);
-    }
+    if (!initialSelectedInquiryId) return;
+    // loadMessages sets loading state synchronously before its fetch —
+    // deliberate for an instant loading indicator on the initial thread.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadMessages(initialSelectedInquiryId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

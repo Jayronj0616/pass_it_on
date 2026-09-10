@@ -11,16 +11,14 @@ export function SignOutButton({ className }: { className?: string }) {
   const [slow, setSlow] = useState(false);
 
   useEffect(() => {
-    if (!signingOut) {
-      setSlow(false);
-      return;
-    }
+    if (!signingOut) return;
     const timer = setTimeout(() => setSlow(true), 5000);
     return () => clearTimeout(timer);
   }, [signingOut]);
 
   async function handleConfirmedSignOut() {
     setSigningOut(true);
+    setSlow(false);
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
@@ -48,7 +46,7 @@ export function SignOutButton({ className }: { className?: string }) {
             <p className="mt-2 text-sm text-muted">
               You&apos;ll need to log back in to access your account.
             </p>
-            {slow && (
+            {signingOut && slow && (
               <p className="mt-3 text-xs text-muted">
                 This is taking longer than expected...
               </p>

@@ -14,10 +14,7 @@ export default function LoginPage() {
   const [slow, setSlow] = useState(false);
 
   useEffect(() => {
-    if (!submitting) {
-      setSlow(false);
-      return;
-    }
+    if (!submitting) return;
     const timer = setTimeout(() => setSlow(true), 5000);
     return () => clearTimeout(timer);
   }, [submitting]);
@@ -37,6 +34,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
+    setSlow(false);
     setError(null);
 
     const supabase = createClient();
@@ -133,7 +131,7 @@ export default function LoginPage() {
           >
             {submitting ? "Logging in..." : "Log in"}
           </button>
-          {slow && (
+          {submitting && slow && (
             <p className="mt-2 text-center text-xs text-muted">
               This is taking longer than expected...
             </p>

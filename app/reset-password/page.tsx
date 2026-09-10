@@ -30,10 +30,7 @@ export default function ResetPasswordPage() {
   }, []);
 
   useEffect(() => {
-    if (!submitting) {
-      setSlow(false);
-      return;
-    }
+    if (!submitting) return;
     const timer = setTimeout(() => setSlow(true), 5000);
     return () => clearTimeout(timer);
   }, [submitting]);
@@ -44,6 +41,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
+    setSlow(false);
     setError(null);
 
     const supabase = createClient();
@@ -116,7 +114,7 @@ export default function ResetPasswordPage() {
             >
               {submitting ? "Updating..." : "Update password"}
             </button>
-            {slow && (
+            {submitting && slow && (
               <p className="mt-2 text-center text-xs text-muted">
                 This is taking longer than expected...
               </p>

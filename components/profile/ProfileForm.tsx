@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type ProfileFormValues = {
   displayName: string;
@@ -29,12 +29,16 @@ export function ProfileForm({
   // initialValues — a stale-closure bug that was latent before (save always
   // matched what the user just typed) but surfaces now that email is
   // deliberately not written through immediately. See ProfilePageClient.
-  useEffect(() => {
+  // Done during render (React's "adjusting state" pattern, not an effect)
+  // so it applies before paint instead of causing an extra commit.
+  const [prevInitialValues, setPrevInitialValues] = useState(initialValues);
+  if (initialValues !== prevInitialValues) {
+    setPrevInitialValues(initialValues);
     setDisplayName(initialValues.displayName);
     setEmail(initialValues.email);
     setPhone(initialValues.phone);
     setSharePhone(initialValues.sharePhone);
-  }, [initialValues]);
+  }
 
   const canSubmit = displayName.trim().length > 0 && email.trim().length > 0;
 

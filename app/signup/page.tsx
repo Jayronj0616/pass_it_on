@@ -27,11 +27,12 @@ export default function SignupPage() {
 
   useEffect(() => {
     const trimmed = displayName.trim();
-    if (trimmed.length === 0) {
-      setNameCheckStatus("idle");
-      return;
-    }
+    if (trimmed.length === 0) return;
 
+    // Debounced availability check — "checking" must show immediately
+    // (not from inside the timeout below) so the status text doesn't lag
+    // a keystroke behind while the 500ms debounce is pending.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNameCheckStatus("checking");
     const timeout = setTimeout(async () => {
       const supabase = createClient();
@@ -53,6 +54,12 @@ export default function SignupPage() {
 
     return () => clearTimeout(timeout);
   }, [displayName]);
+
+  // The effect above only re-checks once the field is non-empty, so a
+  // cleared field must fall back to "idle" here rather than showing a
+  // stale checking/available/taken status from before it was cleared.
+  const displayedNameStatus: NameCheckStatus =
+    displayName.trim().length === 0 ? "idle" : nameCheckStatus;
 
   const canSubmit =
     displayName.trim().length > 0 &&
@@ -134,16 +141,16 @@ export default function SignupPage() {
             placeholder="e.g. Jayron"
             className="mt-1.5 w-full rounded-lg border border-border bg-page p-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
           />
-          {nameCheckStatus === "checking" && (
+          {displayedNameStatus === "checking" && (
             <p className="mt-1 text-xs text-muted">Checking availability...</p>
           )}
-          {nameCheckStatus === "available" && (
+          {displayedNameStatus === "available" && (
             <p className="mt-1 text-xs text-green-text">Available</p>
           )}
-          {nameCheckStatus === "taken" && (
+          {displayedNameStatus === "taken" && (
             <p className="mt-1 text-xs text-red-700">Already taken</p>
           )}
-          {nameCheckStatus === "idle" && (
+          {displayedNameStatus === "idle" && (
             <p className="mt-1 text-xs text-muted">
               Shown to other users — not your real name if you&apos;d rather not.
             </p>
