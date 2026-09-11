@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationBell } from "@/components/admin/NotificationBell";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
@@ -44,6 +45,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
 export function AdminSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { unreadCount, markRead } = useAdminNotifications();
 
   return (
     <>
@@ -53,7 +55,7 @@ export function AdminSidebar() {
           PassItOn <span className="font-semibold text-white/50">Admin</span>
         </Link>
         <div className="flex items-center gap-1">
-          <NotificationBell />
+          <NotificationBell unreadCount={unreadCount} onRead={markRead} />
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -131,7 +133,7 @@ export function AdminSidebar() {
             <Link href="/" className="text-lg font-extrabold tracking-tight text-white">
               PassItOn
             </Link>
-            <NotificationBell />
+            <NotificationBell unreadCount={unreadCount} onRead={markRead} />
           </div>
           <p className="mt-0.5 text-xs font-semibold text-white/50">Admin</p>
         </div>

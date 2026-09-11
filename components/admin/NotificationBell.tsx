@@ -1,80 +1,24 @@
 "use client";
 
-import { useEffect, useId, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
-// Bell icon + unread badge for the AdminSidebar. Fires for every item
-// posted, including an admin's own (confirmed). Real-time via the same
-// postgres_changes pattern messaging already uses (see
-// MessagesPageClient.tsx) — one INSERT subscription on `items`.
-export function NotificationBell({ className = "" }: { className?: string }) {
+// Bell icon + unread badge for the AdminSidebar. Purely presentational —
+// the unread count and realtime subscription live in useAdminNotifications,
+// owned once by AdminSidebar and shared between this component's two
+// mounted instances (desktop sidebar + mobile top bar).
+export function NotificationBell({
+  unreadCount,
+  onRead,
+  className = "",
+}: {
+  unreadCount: number;
+  onRead: () => void;
+  className?: string;
+}) {
   const router = useRouter();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [userId, setUserId] = useState<string | null>(null);
-  const instanceId = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const channelNameRef = useRef(`admin-item-notifications-${instanceId}`);
 
-  useEffect(() => {
-    const supabase = createClient();
-    let cancelled = false;
-
-    async function init() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled || !user) return;
-      setUserId(user.id);
-
-      // get_admin_last_read() creates the row (defaulted to "now") on first
-      // call for a brand-new admin, so a fresh admin never sees every item
-      // ever posted as unread — see 0011_admin_notifications.sql.
-      const { data: lastRead, error: rpcError } = await supabase.rpc(
-        "get_admin_last_read"
-      );
-
-      if (cancelled || rpcError || !lastRead) return;
-
-      const { count } = await supabase
-        .from("items")
-        .select("id", { count: "exact", head: true })
-        .gt("created_at", lastRead);
-
-      if (!cancelled) {
-        setUnreadCount(count ?? 0);
-      }
-    }
-
-    init();
-
-    const channel = supabase
-      .channel(channelNameRef.current)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "items" },
-        () => {
-          setUnreadCount((prev) => prev + 1);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  async function handleClick() {
-    const supabase = createClient();
-
-    if (userId) {
-      await supabase
-        .from("admin_notification_reads")
-        .update({ last_read_at: new Date().toISOString() })
-        .eq("admin_id", userId);
-    }
-
-    setUnreadCount(0);
+  function handleClick() {
+    onRead();
     router.push("/admin/items");
   }
 
