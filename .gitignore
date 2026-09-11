@@ -24,3 +24,5 @@ supabase/.temp/
 
 # provenly runtime state (the config at the root is tracked, this is not)
 .claude/.harness/
+.vercel
+.env*

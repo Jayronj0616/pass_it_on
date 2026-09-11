@@ -147,6 +147,7 @@ export default function SignupPage() {
             <input
               id="signup-name"
               type="text"
+              autoComplete="nickname"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="e.g. Jayron"
@@ -176,6 +177,7 @@ export default function SignupPage() {
             <input
               id="signup-email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -191,6 +193,7 @@ export default function SignupPage() {
             <input
               id="signup-password"
               type="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 6 characters"
