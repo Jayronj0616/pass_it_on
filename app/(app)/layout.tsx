@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { MobileNavDrawer } from "@/components/nav/MobileNavDrawer";
+import { SiteFooter } from "@/components/nav/SiteFooter";
 
 // Shared nav for every consumer-facing page (/browse, /messages, /dashboard/*,
 // /profile, /items/*). Admins never reach here — middleware.ts redirects
@@ -95,6 +96,8 @@ export default async function AppLayout({
       </header>
 
       <div className="flex-1">{children}</div>
+
+      <SiteFooter />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LandingSections } from "@/components/landing/LandingSections";
 import { HeroCarousel } from "@/components/landing/HeroCarousel";
-import { LandingFooter } from "@/components/landing/LandingFooter";
+import { SiteFooter } from "@/components/nav/SiteFooter";
 
 // The marketing/landing page. Shown to everyone, every time they hit /,
 // logged in or not — including right after login/signup, which both
@@ -133,7 +133,7 @@ export default async function LandingPage() {
       </main>
 
       <LandingSections signupHref={user ? "/items/new" : "/signup"} />
-      <LandingFooter />
+      <SiteFooter />
     </div>
   );
 }
