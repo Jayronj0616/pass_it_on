@@ -30,12 +30,14 @@ export function ItemDetailClient({
   userEmail,
   isAdmin,
   isEmailVerified,
+  isOwner,
 }: {
   item: Item;
   userId: string | null;
   userEmail: string | null;
   isAdmin: boolean;
   isEmailVerified: boolean;
+  isOwner: boolean;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -46,6 +48,10 @@ export function ItemDetailClient({
   async function handleInquirySubmit(message: string) {
     if (!userId) {
       return { ok: false, error: "You need to be logged in to inquire." };
+    }
+
+    if (isOwner) {
+      return { ok: false, error: "This is your own listing." };
     }
 
     if (!isEmailVerified) {
@@ -73,6 +79,10 @@ export function ItemDetailClient({
   async function handleReportSubmit(reason: string, note: string) {
     if (!userId) {
       return { ok: false, error: "You need to be logged in to report." };
+    }
+
+    if (isOwner) {
+      return { ok: false, error: "This is your own listing." };
     }
 
     const supabase = createClient();
@@ -151,7 +161,7 @@ export function ItemDetailClient({
                 : `${item.inquiryCount} ${item.inquiryCount === 1 ? "inquiry" : "inquiries"} so far`}
             </p>
 
-            {!isAdmin && (
+            {!isAdmin && !isOwner && (
               <button
                 onClick={() => setReportModalOpen(true)}
                 className="mt-2 self-start text-xs font-semibold text-muted underline-offset-2 hover:text-ink hover:underline"
@@ -165,6 +175,13 @@ export function ItemDetailClient({
                 <p className="rounded-lg border border-border bg-gray-bg px-4 py-3 text-center text-sm font-medium text-muted">
                   Viewing as admin — use a regular account to send inquiries.
                 </p>
+              ) : isOwner ? (
+                <Link
+                  href="/dashboard/my-items"
+                  className="block rounded-lg border border-border bg-gray-bg px-4 py-3 text-center text-sm font-medium text-muted transition-colors hover:text-ink"
+                >
+                  This is your listing — manage it in My items
+                </Link>
               ) : canInquire ? (
                 <button
                   onClick={() => setModalOpen(true)}

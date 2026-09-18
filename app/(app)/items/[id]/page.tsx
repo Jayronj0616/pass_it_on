@@ -42,6 +42,11 @@ export default async function ItemDetailPage({
     ? userData.user.email_confirmed_at != null
     : false;
 
+  // Your own listing: inquiring on it or reporting it are both nonsense
+  // actions, and the inquiry one would even "work" (the RLS policy only
+  // checks receiver_id = auth.uid(), not that you aren't the donator).
+  const isOwner = userData.user?.id === item.donator_id;
+
   return (
     <ItemDetailClient
       item={{
@@ -62,6 +67,7 @@ export default async function ItemDetailPage({
       userEmail={userData.user?.email ?? null}
       isAdmin={isAdmin}
       isEmailVerified={isEmailVerified}
+      isOwner={isOwner}
     />
   );
 }
