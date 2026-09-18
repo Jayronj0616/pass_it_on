@@ -134,56 +134,81 @@ export function MessagesPageClient({
 
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel("messages-inbox")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => {
-          const row = payload.new as RawMessageRow;
-          const isOpenThread = selectedInquiryIdRef.current === row.inquiry_id;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
 
-          if (isOpenThread) {
-            setMessages((prev) =>
-              prev.some((m) => m.id === row.id)
-                ? prev
-                : [
-                    ...prev,
-                    {
-                      id: row.id,
-                      senderId: row.sender_id,
-                      body: row.body,
-                      imagePath: row.image_path,
-                      createdAt: row.created_at,
-                    },
-                  ],
-            );
-            if (row.sender_id !== currentUserId) {
-              markRead(row.inquiry_id);
+    // messages_select_participant (the RLS policy Realtime evaluates per
+    // subscriber) checks auth.uid() against the inquiry's participants.
+    // That only resolves if this socket's own JWT has been handed to the
+    // realtime layer — a fresh client from createClient() doesn't have
+    // that synced yet at the moment .subscribe() would otherwise fire, so
+    // the channel used to come up SUBSCRIBED but auth.uid() evaluated to
+    // null for it, and RLS silently dropped every row: inserts always
+    // succeeded, but no subscriber, including the sender's own tab, ever
+    // received the echo. Awaiting the session and calling
+    // realtime.setAuth() first closes that race.
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (session) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+      if (cancelled) return;
+
+      channel = supabase
+        .channel("messages-inbox")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages" },
+          (payload) => {
+            const row = payload.new as RawMessageRow;
+            const isOpenThread = selectedInquiryIdRef.current === row.inquiry_id;
+
+            if (isOpenThread) {
+              setMessages((prev) =>
+                prev.some((m) => m.id === row.id)
+                  ? prev
+                  : [
+                      ...prev,
+                      {
+                        id: row.id,
+                        senderId: row.sender_id,
+                        body: row.body,
+                        imagePath: row.image_path,
+                        createdAt: row.created_at,
+                      },
+                    ],
+              );
+              if (row.sender_id !== currentUserId) {
+                markRead(row.inquiry_id);
+              }
             }
-          }
 
-          setThreads((prev) =>
-            prev.map((t) =>
-              t.inquiryId === row.inquiry_id
-                ? {
-                    ...t,
-                    lastMessagePreview: row.body ?? "📷 Photo",
-                    lastMessageAt: row.created_at,
-                    unreadCount:
-                      isOpenThread || row.sender_id === currentUserId
-                        ? t.unreadCount
-                        : t.unreadCount + 1,
-                  }
-                : t,
-            ),
-          );
-        },
-      )
-      .subscribe();
+            setThreads((prev) =>
+              prev.map((t) =>
+                t.inquiryId === row.inquiry_id
+                  ? {
+                      ...t,
+                      lastMessagePreview: row.body ?? "📷 Photo",
+                      lastMessageAt: row.created_at,
+                      unreadCount:
+                        isOpenThread || row.sender_id === currentUserId
+                          ? t.unreadCount
+                          : t.unreadCount + 1,
+                    }
+                  : t,
+              ),
+            );
+          },
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
