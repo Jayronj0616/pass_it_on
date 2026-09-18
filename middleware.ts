@@ -38,6 +38,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const isApiRoute = pathname.startsWith("/api/");
   const isAdminRoute = pathname.startsWith("/admin");
   const isAuthRoute = pathname === "/login" || pathname === "/signup";
   // Admins get bounced out of the consumer app in general, but the admin
@@ -66,7 +67,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (!isAdminRoute && !isAuthRoute && !isItemDetailRoute && isAdmin) {
+  // API routes are never "pages" an admin is redirected away from — they
+  // return JSON, not HTML, and each one already re-checks is_admin itself
+  // (see the route handlers under app/api/admin/*). Without this
+  // exemption, isAdminRoute's pathname.startsWith("/admin") check doesn't
+  // match "/api/admin/...", so an admin's own POST to e.g.
+  // /api/admin/items/[id]/remove was being caught by this rule and
+  // redirected to /admin — fetch follows the redirect, receives the
+  // dashboard's HTML instead of JSON, and res.json() throws. The action
+  // handler had no try/catch around that, so the confirm modal's pending
+  // state never cleared: the button hung on "Working..." forever with no
+  // request ever reaching the actual route handler.
+  if (!isApiRoute && !isAdminRoute && !isAuthRoute && !isItemDetailRoute && isAdmin) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 
